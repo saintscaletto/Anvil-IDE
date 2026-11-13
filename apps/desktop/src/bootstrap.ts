@@ -1,3 +1,5 @@
+import type { ThemePreference } from "./ipc/types";
+
 export interface BootInfo {
   native: boolean;
   version: string;
@@ -5,6 +7,7 @@ export interface BootInfo {
   devMode: boolean;
   initialWorkspace: string;
   e2eFile: string;
+  theme: ThemePreference;
 }
 
 declare global {
@@ -35,6 +38,7 @@ export const boot: BootInfo = {
   devMode: Boolean(window.__ANVIL_BOOT__?.devMode),
   initialWorkspace: window.__ANVIL_BOOT__?.initialWorkspace ?? "",
   e2eFile: window.__ANVIL_BOOT__?.e2eFile ?? "",
+  theme: window.__ANVIL_BOOT__?.theme ?? "auto",
 };
 
 export const nativeBridgeAvailable = Boolean(

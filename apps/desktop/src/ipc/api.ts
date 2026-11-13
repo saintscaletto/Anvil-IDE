@@ -2,6 +2,7 @@ import { bridge } from "./bridge";
 import type {
   DirListing,
   FileReadResult,
+  FontListResult,
   FsChangedPayload,
   GitInfo,
   LspCompletionResponse,
@@ -214,6 +215,8 @@ export const api = {
 
   shellRestartCore: () =>
     bridge.request<{ ok: boolean }>("shell/restartCore", {}, 15_000),
+
+  shellListFonts: () => bridge.request<FontListResult>("shell/listFonts", {}, 10_000),
 };
 
 export type { LspDiagnostic, FsChangedPayload };

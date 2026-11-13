@@ -9,7 +9,10 @@ import type {
   LspStatusPayload,
 } from "./ipc/types";
 import { applyDiagnostics } from "./editor/markers";
+import { applyMonacoTheme } from "./editor/theme";
 import { getActiveEditor } from "./editor/instance";
+import { applyAppTheme, watchSystemTheme } from "./theme/apply";
+import { applyFonts } from "./theme/fonts";
 import { ActivityBar } from "./layout/ActivityBar";
 import { CommandPalette } from "./layout/CommandPalette";
 import { EditorArea } from "./layout/EditorArea";
@@ -55,7 +58,23 @@ export function App() {
   const activeTab = tabs.find((tab) => tab.path === activePath);
   const watcherAvailable = useWorkspaceStore((state) => state.watcherAvailable);
   const workspaceRoot = useWorkspaceStore((state) => state.root);
+  const settingsValues = useSettingsStore((state) => state.values);
+  const themePreference = settingsValues["ui.theme"];
   useShortcuts();
+
+  useEffect(() => {
+    const apply = () => {
+      const resolved = applyAppTheme(themePreference);
+      applyMonacoTheme(resolved);
+    };
+    apply();
+    if (themePreference !== "auto") return;
+    return watchSystemTheme(apply);
+  }, [themePreference]);
+
+  useEffect(() => {
+    applyFonts(settingsValues);
+  }, [settingsValues]);
 
   useEffect(() => {
     if (!nativeBridgeAvailable) {

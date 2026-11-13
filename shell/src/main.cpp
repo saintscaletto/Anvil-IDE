@@ -3,6 +3,7 @@
 #include <jsc/jsc.h>
 
 #include <cairo.h>
+#include <fontconfig/fontconfig.h>
 
 #include <nlohmann/json.hpp>
 
@@ -54,6 +55,80 @@ std::filesystem::path shell_config_dir() {
         return std::filesystem::path(home) / ".config" / "anvil";
     }
     return {};
+}
+
+// The UI renders before the core has answered system/info. Reading only the
+// persisted theme id here lets the first frame use the user's theme instead of
+// flashing the default. The value is an allowlisted enum; the core remains the
+// owner of the setting and re-validates every write.
+std::string initial_ui_theme() {
+    const std::filesystem::path path = shell_config_dir() / "settings.json";
+    std::ifstream input(path, std::ios::binary);
+    if (!input) return "auto";
+    std::string content((std::istreambuf_iterator<char>(input)),
+                        std::istreambuf_iterator<char>());
+    if (content.size() > 256U * 1024U) return "auto";
+    const Json parsed = Json::parse(content, nullptr, false);
+    if (parsed.is_discarded() || !parsed.is_object()) return "auto";
+    const auto item = parsed.find("ui.theme");
+    if (item == parsed.end() || !item->is_string()) return "auto";
+    const std::string theme = item->get<std::string>();
+    if (theme == "auto" || theme == "dark" || theme == "light" || theme == "high-contrast") {
+        return theme;
+    }
+    return "auto";
+}
+
+// Enumerates installed font families through fontconfig. This is read-only and
+// bounded: at most 300 unique families are returned, sorted by name. The UI
+// treats the result as suggestions; free-text family names are still allowed.
+Json list_font_families() {
+    Json families = Json::array();
+    if (FcInit() == FcFalse) {
+        return Json{{"families", families}, {"truncated", false}};
+    }
+    FcPattern* pattern = FcPatternCreate();
+    FcObjectSet* object_set =
+        FcObjectSetBuild(FC_FAMILY, FC_SPACING, static_cast<char*>(nullptr));
+    if (pattern == nullptr || object_set == nullptr) {
+        if (object_set != nullptr) FcObjectSetDestroy(object_set);
+        if (pattern != nullptr) FcPatternDestroy(pattern);
+        return Json{{"families", families}, {"truncated", false}};
+    }
+    std::set<std::string> seen;
+    std::vector<std::pair<std::string, bool>> entries;
+    bool truncated = false;
+    if (FcFontSet* fonts = FcFontList(nullptr, pattern, object_set); fonts != nullptr) {
+        for (int index = 0; index < fonts->nfont; ++index) {
+            FcChar8* family = nullptr;
+            if (FcPatternGetString(fonts->fonts[index], FC_FAMILY, 0, &family) != FcResultMatch ||
+                family == nullptr) {
+                continue;
+            }
+            const std::string name(reinterpret_cast<const char*>(family));
+            if (name.empty() || name.size() > 128) continue;
+            if (!seen.insert(name).second) continue;
+            if (entries.size() >= 300) {
+                truncated = true;
+                break;
+            }
+            int spacing = FC_PROPORTIONAL;
+            const bool monospace =
+                FcPatternGetInteger(fonts->fonts[index], FC_SPACING, 0, &spacing) ==
+                    FcResultMatch &&
+                (spacing == FC_MONO || spacing == FC_DUAL || spacing == FC_CHARCELL);
+            entries.emplace_back(name, monospace);
+        }
+        FcFontSetDestroy(fonts);
+    }
+    FcObjectSetDestroy(object_set);
+    FcPatternDestroy(pattern);
+    std::sort(entries.begin(), entries.end(),
+              [](const auto& left, const auto& right) { return left.first < right.first; });
+    for (const auto& [family, monospace] : entries) {
+        families.push_back(Json{{"family", family}, {"monospace", monospace}});
+    }
+    return Json{{"families", families}, {"truncated", truncated}};
 }
 
 struct WriteTask {
@@ -586,6 +661,10 @@ void handle_shell_message(ShellApp* app, const Json& message) {
                               {"devMode", app->options.dev_mode}});
         return;
     }
+    if (method == "shell/listFonts") {
+        send_js_response(app, id, list_font_families());
+        return;
+    }
     if (method == "shell/openFolder") {
         const std::string path = choose_folder(app, "Open Folder");
         if (path.empty()) {
@@ -825,7 +904,8 @@ void on_activate(GtkApplication* application, gpointer user_data) {
               {"e2e", app->options.e2e},
               {"devMode", app->options.dev_mode},
               {"initialWorkspace", app->options.workspace},
-              {"e2eFile", app->options.e2e_file}};
+              {"e2eFile", app->options.e2e_file},
+              {"theme", initial_ui_theme()}};
     std::string bootstrap =
         "window.__ANVIL_BOOT__ = " + boot.dump() +
         "; window.__ANVIL_NATIVE__ = true;";

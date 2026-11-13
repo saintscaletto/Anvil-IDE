@@ -164,17 +164,36 @@ export interface SystemInfo {
   };
 }
 
+export type ThemePreference = "auto" | "dark" | "light" | "high-contrast";
+export type EditorLineHeight = "compact" | "normal" | "relaxed";
+
 export interface Settings {
   "editor.fontSize": number;
   "editor.tabSize": number;
   "editor.wordWrap": boolean;
   "editor.minimap": boolean;
   "editor.formatOnSave": boolean;
+  "editor.fontFamily": string;
+  "editor.fontLigatures": boolean;
+  "editor.lineHeight": EditorLineHeight;
   "lsp.clangdPath": string;
   "lsp.clangdArgs": string[];
   "lsp.enableProjectConfig": boolean;
   "security.allowUnsandboxedLsp": boolean;
   "explorer.hideGit": boolean;
+  "ui.theme": ThemePreference;
+  "ui.fontFamily": string;
+  "ui.fontSize": number;
+}
+
+export interface FontFamilyInfo {
+  family: string;
+  monospace: boolean;
+}
+
+export interface FontListResult {
+  families: FontFamilyInfo[];
+  truncated: boolean;
 }
 
 export interface LspStatusPayload {

@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Modal } from "../components/Modal";
 import { CheckIcon, ShieldIcon, WarningIcon } from "../components/Icons";
 import { isValidEntryName } from "../lib/paths";
+import type { FontFamilyInfo, ThemePreference } from "../ipc/types";
+import { isValidFontFamily } from "../theme/fonts";
 import { useCoreStore } from "../stores/core";
 import { useEditorStore } from "../stores/editor";
 import { useSettingsStore } from "../stores/settings";
@@ -13,6 +15,17 @@ import {
   restartLanguageServer,
 } from "../actions";
 
+const THEME_OPTIONS = [
+  { id: "auto", label: "Automatic", hint: "Follow the system appearance" },
+  { id: "dark", label: "Anvil Dark", hint: "Default dark palette" },
+  { id: "light", label: "Anvil Light", hint: "For bright environments" },
+  { id: "high-contrast", label: "Anvil High Contrast", hint: "Stronger borders and focus" },
+] as const satisfies ReadonlyArray<{
+  id: ThemePreference;
+  label: string;
+  hint: string;
+}>;
+
 function SettingsModal() {
   const open = useUiStore((state) => state.settingsOpen);
   const setOpen = useUiStore((state) => state.setSettingsOpen);
@@ -20,7 +33,50 @@ function SettingsModal() {
   const setValue = useSettingsStore((state) => state.setValue);
   const info = useCoreStore((state) => state.info);
   const security = useCoreStore((state) => state.security);
+  const [fonts, setFonts] = useState<FontFamilyInfo[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void api
+      .shellListFonts()
+      .then((result) => {
+        if (!cancelled) setFonts(result.families);
+      })
+      .catch(() => {
+        if (!cancelled) setFonts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   if (!open) return null;
+
+  const saveFontFamily = (key: "ui.fontFamily" | "editor.fontFamily", raw: string) => {
+    const value = raw.trim();
+    if (!value) {
+      if (values[key] !== "") void setValue(key, "");
+      return;
+    }
+    if (!isValidFontFamily(value)) {
+      useUiStore
+        .getState()
+        .toast("error", "Font family may contain letters, digits, spaces, and . _ - + only.");
+      return;
+    }
+    if (value === values[key]) return;
+    const installed = fonts.some(
+      (font) => font.family.toLocaleLowerCase() === value.toLocaleLowerCase(),
+    );
+    void setValue(key, value).then(() => {
+      if (!installed && fonts.length > 0) {
+        useUiStore
+          .getState()
+          .toast("warning", `Font "${value}" is not installed; the fallback stack is used.`);
+      }
+    });
+  };
 
   return (
     <Modal
@@ -32,6 +88,106 @@ function SettingsModal() {
         </button>
       }
     >
+      <section className="settings-section">
+        <h3>Appearance</h3>
+        <div className="setting-row column">
+          <span>Theme</span>
+          <div className="theme-picker" role="radiogroup" aria-label="Theme">
+            {THEME_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={values["ui.theme"] === option.id}
+                className={`theme-option${values["ui.theme"] === option.id ? " selected" : ""}`}
+                onClick={() => void setValue("ui.theme", option.id)}
+              >
+                <span className={`theme-swatch ${option.id}`} aria-hidden="true" />
+                <span className="theme-option-text">
+                  <strong>{option.label}</strong>
+                  <span>{option.hint}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <label className="setting-row column">
+          <span>Interface font family</span>
+          <input
+            key={`ui-font-${values["ui.fontFamily"]}`}
+            type="text"
+            list="anvil-font-families"
+            defaultValue={values["ui.fontFamily"]}
+            placeholder="System default"
+            onBlur={(event) => saveFontFamily("ui.fontFamily", event.target.value)}
+          />
+        </label>
+        <label className="setting-row">
+          <span>Interface font size</span>
+          <input
+            type="number"
+            min={11}
+            max={18}
+            value={values["ui.fontSize"]}
+            onChange={(event) => {
+              const value = Math.max(11, Math.min(18, Number(event.target.value) || 12));
+              void setValue("ui.fontSize", value);
+            }}
+          />
+        </label>
+        <label className="setting-row column">
+          <span>Editor font family</span>
+          <input
+            key={`editor-font-${values["editor.fontFamily"]}`}
+            type="text"
+            list="anvil-font-families"
+            defaultValue={values["editor.fontFamily"]}
+            placeholder="Default monospace stack"
+            onBlur={(event) => saveFontFamily("editor.fontFamily", event.target.value)}
+          />
+        </label>
+        <label className="setting-row">
+          <span>Editor line height</span>
+          <select
+            value={values["editor.lineHeight"]}
+            onChange={(event) =>
+              void setValue(
+                "editor.lineHeight",
+                event.target.value as "compact" | "normal" | "relaxed",
+              )
+            }
+          >
+            <option value="compact">Compact</option>
+            <option value="normal">Normal</option>
+            <option value="relaxed">Relaxed</option>
+          </select>
+        </label>
+        <label className="setting-row checkbox">
+          <span>Editor font ligatures</span>
+          <input
+            type="checkbox"
+            checked={values["editor.fontLigatures"]}
+            onChange={(event) => void setValue("editor.fontLigatures", event.target.checked)}
+          />
+        </label>
+        <datalist id="anvil-font-families">
+          {fonts.map((font) => (
+            <option key={font.family} value={font.family}>
+              {font.monospace ? `${font.family} (monospace)` : font.family}
+            </option>
+          ))}
+        </datalist>
+        <div className="setting-note">
+          Themes and fonts apply immediately and persist in settings.json. Font family names are
+          validated as data; an unknown family falls back to the built-in stack.
+        </div>
+        {fonts.length === 0 ? (
+          <div className="setting-note">
+            The installed font list is unavailable; type a family name to use it.
+          </div>
+        ) : null}
+      </section>
+
       <section className="settings-section">
         <h3>Editor</h3>
         <label className="setting-row">

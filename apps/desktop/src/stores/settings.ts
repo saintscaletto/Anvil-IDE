@@ -9,11 +9,17 @@ export const defaultSettings: Settings = {
   "editor.wordWrap": false,
   "editor.minimap": true,
   "editor.formatOnSave": false,
+  "editor.fontFamily": "",
+  "editor.fontLigatures": true,
+  "editor.lineHeight": "normal",
   "lsp.clangdPath": "clangd",
   "lsp.clangdArgs": [],
   "lsp.enableProjectConfig": false,
   "security.allowUnsandboxedLsp": false,
   "explorer.hideGit": true,
+  "ui.theme": "auto",
+  "ui.fontFamily": "",
+  "ui.fontSize": 12,
 };
 
 interface SettingsState {
