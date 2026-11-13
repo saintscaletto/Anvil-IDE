@@ -85,7 +85,9 @@ std::filesystem::path shell_config_dir() {
 // flashing the default. The value is an allowlisted enum; the core remains the
 // owner of the setting and re-validates every write.
 std::string initial_ui_theme() {
-    const std::filesystem::path path = shell_config_dir() / "settings.json";
+    const std::filesystem::path config_dir = shell_config_dir();
+    if (config_dir.empty()) return "dark";
+    const std::filesystem::path path = config_dir / "settings.json";
     std::ifstream input(path, std::ios::binary);
     if (!input) return "dark";
     std::string content((std::istreambuf_iterator<char>(input)),
@@ -121,26 +123,50 @@ Json list_font_families() {
     std::set<std::string> seen;
     std::vector<std::pair<std::string, bool>> entries;
     bool truncated = false;
+    auto add_family = [&](std::string name, bool monospace) {
+        const std::size_t begin = name.find_first_not_of(" \t");
+        if (begin == std::string::npos) return true;
+        const std::size_t end = name.find_last_not_of(" \t");
+        name = name.substr(begin, end - begin + 1);
+        if (name.empty() || name.size() > 128) return true;
+        if (!seen.insert(name).second) return true;
+        if (entries.size() >= 300) {
+            truncated = true;
+            return false;
+        }
+        entries.emplace_back(std::move(name), monospace);
+        return true;
+    };
     if (FcFontSet* fonts = FcFontList(nullptr, pattern, object_set); fonts != nullptr) {
-        for (int index = 0; index < fonts->nfont; ++index) {
-            FcChar8* family = nullptr;
-            if (FcPatternGetString(fonts->fonts[index], FC_FAMILY, 0, &family) != FcResultMatch ||
-                family == nullptr) {
-                continue;
-            }
-            const std::string name(reinterpret_cast<const char*>(family));
-            if (name.empty() || name.size() > 128) continue;
-            if (!seen.insert(name).second) continue;
-            if (entries.size() >= 300) {
-                truncated = true;
-                break;
-            }
+        for (int index = 0; index < fonts->nfont && !truncated; ++index) {
             int spacing = FC_PROPORTIONAL;
             const bool monospace =
                 FcPatternGetInteger(fonts->fonts[index], FC_SPACING, 0, &spacing) ==
                     FcResultMatch &&
                 (spacing == FC_MONO || spacing == FC_DUAL || spacing == FC_CHARCELL);
-            entries.emplace_back(name, monospace);
+            // Fontconfig can expose multiple family values per pattern, and a
+            // single value may list aliases separated by commas. The settings
+            // validator rejects commas, so split them into real families.
+            for (int family_index = 0; !truncated; ++family_index) {
+                FcChar8* family = nullptr;
+                if (FcPatternGetString(fonts->fonts[index], FC_FAMILY, family_index,
+                                       &family) != FcResultMatch ||
+                    family == nullptr) {
+                    break;
+                }
+                const std::string value(reinterpret_cast<const char*>(family));
+                std::size_t start = 0;
+                while (start <= value.size() && !truncated) {
+                    const std::size_t comma = value.find(',', start);
+                    const std::string alias =
+                        value.substr(start, comma == std::string::npos
+                                               ? std::string::npos
+                                               : comma - start);
+                    if (!add_family(alias, monospace)) break;
+                    if (comma == std::string::npos) break;
+                    start = comma + 1;
+                }
+            }
         }
         FcFontSetDestroy(fonts);
     }
