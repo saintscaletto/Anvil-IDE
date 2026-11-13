@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+# Reference Debian rules for a future source-package build.
+#
+# The 0.0.1 deliverable is assembled by scripts/build-deb.sh because this
+# repository is not laid out as a classic Debian source package (the Debian
+# metadata lives under packaging/debian and the application bundles its UI).
+# This file documents the intended debhelper mapping.
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	./scripts/build.sh release
+
+override_dh_auto_test:
+	./scripts/test.sh
+
+override_dh_auto_install:
+	./scripts/stage-deb.sh "$(CURDIR)/debian/anvil"
+
+.PHONY: override_dh_auto_build override_dh_auto_test override_dh_auto_install

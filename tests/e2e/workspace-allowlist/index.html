@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Anvil workspace allowlist test</title></head>
+<body>
+<pre id="log">running…</pre>
+<script>
+const log = document.getElementById("log");
+const boot = window.__ANVIL_BOOT__ || {};
+const allowed = boot.initialWorkspace || "";
+let rejected = false;
+
+function send(message) {
+  window.webkit.messageHandlers.anvil.postMessage(message);
+}
+function ready(ok, error) {
+  send({ type: "notification", method: "shell/ready", params: { ok, error: error || "" }, apiVersion: 1 });
+}
+window.__anvilReceive = (message) => {
+  log.textContent += "\n" + JSON.stringify(message);
+  if (message.type !== "response") return;
+  if (message.id === 1) {
+    rejected = Boolean(message.error) && message.error.code === -32002;
+    if (!rejected) { ready(false, "filesystem root was accepted"); return; }
+    send({ type: "request", id: 2, method: "workspace/open", params: { path: allowed }, apiVersion: 1 });
+    return;
+  }
+  if (message.id === 2) {
+    const ok = !message.error && message.result && message.result.name === "sample_cpp";
+    ready(ok, ok ? "" : "allowed workspace was rejected");
+  }
+};
+send({ type: "request", id: 1, method: "workspace/open", params: { path: "/etc" }, apiVersion: 1 });
+</script>
+</body>
+</html>

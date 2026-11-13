@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+
+# Anvil has no long-running system service. Nothing to stop.
+exit 0

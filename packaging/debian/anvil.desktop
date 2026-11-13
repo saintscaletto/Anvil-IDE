@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Anvil IDE
+GenericName=C++ IDE
+Comment=Fast, lightweight C++ IDE with a native core and clangd intelligence
+Exec=anvil %F
+Icon=anvil
+Terminal=false
+Categories=Development;IDE;
+Keywords=C++;C;IDE;clangd;editor;debugger;cmake;
+StartupNotify=true
+StartupWMClass=anvil
+MimeType=text/x-c++src;text/x-c++hdr;text/x-csrc;text/x-chdr;text/x-cmake;

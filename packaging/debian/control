@@ -1,0 +1,45 @@
+Source: anvil
+Section: devel
+Priority: optional
+Maintainer: Anvil IDE Authors <anvil@localhost>
+Build-Depends: debhelper-compat (= 13),
+               cmake (>= 3.20),
+               ninja-build,
+               g++ (>= 13),
+               pkg-config,
+               nlohmann-json3-dev (>= 3.11),
+               libspdlog-dev (>= 1.12),
+               libgtest-dev,
+               libwebkit2gtk-4.1-dev,
+               libgtk-3-dev,
+               nodejs (>= 18),
+               npm
+Standards-Version: 4.6.2
+Homepage: https://anvil.dev
+Rules-Requires-Root: no
+
+Package: anvil
+Architecture: amd64
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Recommends: bubblewrap,
+            clangd-18 | clangd,
+            gdb | lldb,
+            git,
+            cmake,
+            ninja-build
+Suggests: clangd,
+          rust-analyzer,
+          python3-pylsp
+Description: Fast, lightweight C++ IDE with a native core
+ Anvil is a C++-first integrated development environment combining
+ clangd-powered intelligence with a native C++ core for filesystem
+ access, language-server management, and security policy.
+ .
+ The editor UI is built with React and Monaco inside the system
+ WebKitGTK view. Language servers run in a bubblewrap sandbox with
+ seccomp, without network access and with a read-only workspace.
+ .
+ Rust, Python, and other languages are intended to be supported through
+ the Language Server Protocol in a future release. Anvil 0.0.1 focuses
+ on C and C++.

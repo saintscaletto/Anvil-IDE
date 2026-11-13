@@ -1,0 +1,265 @@
+import {
+  closeActive,
+  closeFolder,
+  collapseExplorer,
+  findInFile,
+  findReferences,
+  goToDefinition,
+  newFile,
+  newFolder,
+  openAbout,
+  openCommandPalette,
+  openFileDialog,
+  openFolderDialog,
+  openQuickOpen,
+  openRunConfig,
+  openSecurity,
+  openSettings,
+  refreshExplorer,
+  requestCloseApp,
+  restartLanguageServer,
+  saveActive,
+  saveAll,
+  showActivity,
+  showPanel,
+  togglePanel,
+  toggleSidebar,
+} from "./actions";
+import { getActiveEditor } from "./editor/instance";
+
+export interface Command {
+  id: string;
+  title: string;
+  category: string;
+  keybinding?: string;
+  run: () => void | Promise<void>;
+}
+
+function triggerEditorAction(actionId: string): void {
+  const editor = getActiveEditor();
+  void editor?.getAction(actionId)?.run();
+}
+
+export const commands: Command[] = [
+  {
+    id: "file.openFolder",
+    title: "Open Folder…",
+    category: "File",
+    keybinding: "Ctrl+Shift+O",
+    run: openFolderDialog,
+  },
+  {
+    id: "file.openFile",
+    title: "Open File…",
+    category: "File",
+    keybinding: "Ctrl+O",
+    run: openFileDialog,
+  },
+  {
+    id: "file.newFile",
+    title: "New File…",
+    category: "File",
+    keybinding: "Ctrl+N",
+    run: () => newFile(""),
+  },
+  {
+    id: "file.newFolder",
+    title: "New Folder…",
+    category: "File",
+    run: () => newFolder(""),
+  },
+  {
+    id: "file.save",
+    title: "Save",
+    category: "File",
+    keybinding: "Ctrl+S",
+    run: saveActive,
+  },
+  {
+    id: "file.saveAll",
+    title: "Save All",
+    category: "File",
+    keybinding: "Ctrl+Shift+S",
+    run: saveAll,
+  },
+  {
+    id: "file.closeEditor",
+    title: "Close Editor",
+    category: "File",
+    keybinding: "Ctrl+W",
+    run: closeActive,
+  },
+  {
+    id: "file.closeFolder",
+    title: "Close Folder",
+    category: "File",
+    run: closeFolder,
+  },
+  {
+    id: "file.exit",
+    title: "Exit Anvil",
+    category: "File",
+    keybinding: "Ctrl+Q",
+    run: requestCloseApp,
+  },
+  {
+    id: "edit.undo",
+    title: "Undo",
+    category: "Edit",
+    keybinding: "Ctrl+Z",
+    run: () => triggerEditorAction("undo"),
+  },
+  {
+    id: "edit.redo",
+    title: "Redo",
+    category: "Edit",
+    keybinding: "Ctrl+Shift+Z",
+    run: () => triggerEditorAction("redo"),
+  },
+  {
+    id: "edit.find",
+    title: "Find",
+    category: "Edit",
+    keybinding: "Ctrl+F",
+    run: findInFile,
+  },
+  {
+    id: "go.definition",
+    title: "Go to Definition",
+    category: "Go",
+    keybinding: "F12",
+    run: goToDefinition,
+  },
+  {
+    id: "go.references",
+    title: "Find All References",
+    category: "Go",
+    keybinding: "Shift+F12",
+    run: findReferences,
+  },
+  {
+    id: "go.file",
+    title: "Go to File…",
+    category: "Go",
+    keybinding: "Ctrl+P",
+    run: openQuickOpen,
+  },
+  {
+    id: "view.explorer",
+    title: "Show Explorer",
+    category: "View",
+    keybinding: "Ctrl+Shift+E",
+    run: () => showActivity("explorer"),
+  },
+  {
+    id: "view.search",
+    title: "Show Search",
+    category: "View",
+    keybinding: "Ctrl+Shift+F",
+    run: () => showActivity("search"),
+  },
+  {
+    id: "view.scm",
+    title: "Show Source Control",
+    category: "View",
+    keybinding: "Ctrl+Shift+G",
+    run: () => showActivity("scm"),
+  },
+  {
+    id: "view.ai",
+    title: "Show Anvil AI",
+    category: "View",
+    run: () => showActivity("ai"),
+  },
+  {
+    id: "view.problems",
+    title: "Show Problems",
+    category: "View",
+    keybinding: "Ctrl+Shift+M",
+    run: () => showPanel("problems"),
+  },
+  {
+    id: "view.output",
+    title: "Show Output",
+    category: "View",
+    keybinding: "Ctrl+Shift+U",
+    run: () => showPanel("output"),
+  },
+  {
+    id: "view.terminal",
+    title: "Show Terminal",
+    category: "View",
+    run: () => showPanel("terminal"),
+  },
+  {
+    id: "view.debug",
+    title: "Show Debug",
+    category: "View",
+    run: () => showPanel("debug"),
+  },
+  {
+    id: "view.toggleSidebar",
+    title: "Toggle Sidebar",
+    category: "View",
+    keybinding: "Ctrl+B",
+    run: toggleSidebar,
+  },
+  {
+    id: "view.togglePanel",
+    title: "Toggle Bottom Panel",
+    category: "View",
+    keybinding: "Ctrl+J",
+    run: togglePanel,
+  },
+  {
+    id: "view.palette",
+    title: "Command Palette…",
+    category: "View",
+    keybinding: "Ctrl+Shift+P",
+    run: openCommandPalette,
+  },
+  {
+    id: "explorer.refresh",
+    title: "Refresh Explorer",
+    category: "Explorer",
+    run: refreshExplorer,
+  },
+  {
+    id: "explorer.collapse",
+    title: "Collapse Folders",
+    category: "Explorer",
+    run: collapseExplorer,
+  },
+  {
+    id: "run.configure",
+    title: "Run Configuration…",
+    category: "Run",
+    keybinding: "Shift+F10",
+    run: openRunConfig,
+  },
+  {
+    id: "run.restartLsp",
+    title: "Restart Language Server",
+    category: "Run",
+    run: restartLanguageServer,
+  },
+  {
+    id: "anvil.settings",
+    title: "Settings",
+    category: "Anvil",
+    keybinding: "Ctrl+,",
+    run: openSettings,
+  },
+  {
+    id: "anvil.security",
+    title: "Security Status",
+    category: "Anvil",
+    run: openSecurity,
+  },
+  {
+    id: "anvil.about",
+    title: "About Anvil",
+    category: "Anvil",
+    run: openAbout,
+  },
+];

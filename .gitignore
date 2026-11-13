@@ -1,4 +1,10 @@
-build
-log
-install
-prompts
+build/
+.sysroot/
+dist/
+apps/desktop/node_modules/
+apps/desktop/dist/
+*.deb
+*.deb.sig
+*.changes
+__pycache__/
+.codewhale/state/

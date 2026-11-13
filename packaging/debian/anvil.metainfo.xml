@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.anvil.Anvil</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>Anvil IDE</name>
+  <summary>Fast, lightweight C++ IDE with a native core</summary>
+  <description>
+    <p>
+      Anvil is a C++-first integrated development environment with
+      clangd-powered intelligence, a native C++ core, and a Monaco editor
+      inside the system WebKitGTK view.
+    </p>
+    <p>
+      Filesystem access is scoped to the open workspace. Language servers
+      run in a bubblewrap sandbox with seccomp, without network access and
+      with a read-only workspace. Anvil has no telemetry and loads no remote
+      content.
+    </p>
+    <p>
+      This 0.0.1 release is experimental. Build integration, debugging,
+      an integrated terminal, Git write operations, plugins, and AI are
+      scheduled for later phases.
+    </p>
+  </description>
+  <launchable type="desktop-id">anvil.desktop</launchable>
+  <url type="homepage">https://anvil.dev</url>
+  <provides>
+    <binary>anvil</binary>
+  </provides>
+  <categories>
+    <category>Development</category>
+    <category>IDE</category>
+  </categories>
+  <icon type="stock">anvil</icon>
+  <releases>
+    <release version="0.0.1" date="2026-11-13">
+      <description>
+        <p>Initial experimental release with clangd hover, completion, navigation, and diagnostics.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

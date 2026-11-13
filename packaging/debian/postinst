@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+# Refresh desktop integration. These helpers are advisory: a minimal system
+# may not have them, and their absence must not fail package installation.
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+if command -v update-mime-database >/dev/null 2>&1; then
+    update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+fi
+# Ubuntu 24.04 blocks unprivileged user namespaces by default. The shipped
+# AppArmor profile permits userns for /usr/bin/bwrap so the language-server
+# sandbox can start. If another bwrap profile is already active, loading ours
+# may fail; that is non-fatal and the existing policy remains in force.
+if [ -f /etc/apparmor.d/anvil-bwrap ] && command -v apparmor_parser >/dev/null 2>&1; then
+    apparmor_parser -r /etc/apparmor.d/anvil-bwrap >/dev/null 2>&1 || true
+fi
+
+exit 0

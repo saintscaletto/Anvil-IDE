@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+    if command -v apparmor_parser >/dev/null 2>&1; then
+        apparmor_parser -R /etc/apparmor.d/anvil-bwrap >/dev/null 2>&1 || true
+    fi
+    # Deliberately do not touch ~/.config/anvil: it contains user settings,
+    # recent projects, and workspace state.
+fi
+
+exit 0

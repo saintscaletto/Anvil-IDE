@@ -1,0 +1,15 @@
+anvil (0.0.1-1) noble; urgency=medium
+
+  * Initial experimental release for Ubuntu 24.04 LTS.
+  * Native C++ core and GTK3/WebKitGTK shell.
+  * Monaco editor with clangd hover, completion, definition, references,
+    signature help, formatting, and diagnostics.
+  * Workspace-scoped filesystem jail with symlink-escape protection.
+  * Sandboxed clangd process using bubblewrap and seccomp.
+  * File watcher, tabs with crash-safe state restore, problems panel,
+    command palette, quick open, settings, and security status.
+  * No telemetry, no remote content, no AI provider.
+  * Build, debug, terminal, Git write operations, plugins, and AI are
+    scheduled for later phases and are explicitly disabled in this release.
+
+ -- Anvil IDE Authors <anvil@localhost>  Thu, 13 Nov 2026 12:00:00 +0000

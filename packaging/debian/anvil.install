@@ -1,0 +1,8 @@
+usr/bin/anvil
+usr/lib/anvil/anvil-core
+usr/share/anvil/ui
+usr/share/applications/anvil.desktop
+usr/share/metainfo/dev.anvil.Anvil.metainfo.xml
+usr/share/icons/hicolor/256x256/apps/anvil.png
+usr/share/icons/hicolor/scalable/apps/anvil.svg
+usr/share/doc/anvil
