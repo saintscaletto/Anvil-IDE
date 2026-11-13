@@ -42,7 +42,9 @@ React 18 + TypeScript + Zustand + Monaco, bundled by Vite into a single classic
 script for reliable `file://` loading. It renders:
 
 - title bar, menus, activity bar, explorer, editor tabs, breadcrumbs, welcome;
-- Monaco with a custom Anvil theme;
+- Monaco with Anvil Dark, Anvil Light, and Anvil High Contrast themes;
+- theme-scoped CSS tokens and validated UI/editor font preferences;
+- English/Russian localization with typed dictionaries and live switching;
 - problems/output/terminal/debug panels;
 - command palette, quick open, settings/about/security/run-configuration
   dialogs;
@@ -59,8 +61,11 @@ explicit roadmap empty states rather than fabricated content.
 {"type":"request","id":1,"method":"fs/read","params":{"path":"src/main.cpp"},"apiVersion":1}
 ```
 
-The shell handles `shell/*` locally and forwards everything else as JSON-RPC
-2.0 to the core. Events from the core are delivered as:
+The shell handles `shell/*` locally (`shell/info`, `shell/openFolder`,
+`shell/openFile`, `shell/setTitle`, `shell/close`, `shell/restartCore`,
+`shell/listFonts`) and forwards everything else as JSON-RPC 2.0 to the core.
+Boot info also carries the persisted `ui.theme` id (for first paint) and the
+normalized system locale (for `ui.language: auto`). Events from the core are delivered as:
 
 ```json
 {"type":"event","method":"lsp:diagnostics","params":{...}}

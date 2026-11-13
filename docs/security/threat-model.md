@@ -1,6 +1,7 @@
-# Anvil IDE — threat model (v0.0.1)
+# Anvil IDE — threat model (v0.0.2)
 
-Status: implemented reference for the 0.0.1 experimental release.
+Status: implemented reference for the 0.0.1 release plus the 0.0.2 appearance
+work in progress (`devel/0.0.2`).
 Last reviewed: 2026-11-13.
 
 ## 1. Scope
@@ -156,6 +157,16 @@ unsandboxed fallback.
   rejected before reaching services.
 - The shell's local methods (`shell/openFolder`, `shell/setTitle`, etc.) do not
   touch the filesystem beyond native GTK dialogs and the window title.
+- `shell/listFonts` only enumerates fontconfig families read-only, caps the
+  result at 300 entries, and returns data rendered as React text nodes. Font
+  family names never become raw CSS: the core and UI accept a conservative
+  character set (no quotes, braces, semicolons, backslashes, or control
+  characters) and the UI builds the quoted family plus a fixed fallback stack.
+- Appearance settings (`ui.theme`, `ui.language`, font keys) are allowlisted
+  enums or validated strings. The shell reads only the bounded, allowlisted
+  `ui.theme` id from `settings.json` for first paint; the core re-validates
+  every write. No appearance value causes a process spawn, network request, or
+  path access.
 - Workspace selection is mediated by the shell. Only the command-line
   workspace, paths returned by native GTK dialogs, and paths in the user's
   `recent.json` are allowed to become a workspace root. An arbitrary
@@ -234,7 +245,7 @@ unsandboxed fallback.
 
 ## 6. Security test coverage
 
-The test suite (`core/tests`, 51 cases) covers:
+The test suite (`core/tests`, 55 cases) covers:
 
 - every IPC validator: malformed types, unknown fields, missing fields,
   oversized payloads, traversal, absolute paths, NUL/control characters,

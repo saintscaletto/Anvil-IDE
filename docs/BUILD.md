@@ -73,7 +73,7 @@ available in the release `.deb`.
 ./scripts/test.sh
 ```
 
-This configures `build/tests` with GoogleTest and runs 51 tests, including:
+This configures `build/tests` with GoogleTest and runs 55 tests, including:
 
 - every IPC validator and JSON-RPC framing;
 - path traversal and symlink escapes;
@@ -111,6 +111,8 @@ cd apps/desktop
 npm ci
 npm run typecheck
 npm run build
+npm run check:contrast
+npm run check:i18n
 ```
 
 The build uses Vite IIFE output plus a deferred classic script tag so that the
