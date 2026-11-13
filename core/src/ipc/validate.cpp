@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 
+#include "anvil/settings.hpp"
 #include "anvil/util/strings.hpp"
 
 namespace anvil::ipc::validate {
@@ -417,6 +418,30 @@ SettingsSet parse_settings_set(const Json& params) {
         }
     } else if (out.key == "lsp.clangdPath") {
         out.value = executable_name_value(out.value);
+    } else if (out.key == "ui.theme") {
+        if (!out.value.is_string() ||
+            !anvil::is_valid_theme_id(out.value.get<std::string>())) {
+            throw ApiError(ErrorCode::InvalidParams, "Invalid ui.theme");
+        }
+    } else if (out.key == "editor.lineHeight") {
+        if (!out.value.is_string() ||
+            !anvil::is_valid_line_height_mode(out.value.get<std::string>())) {
+            throw ApiError(ErrorCode::InvalidParams, "Invalid editor.lineHeight");
+        }
+    } else if (out.key == "ui.fontSize") {
+        out.value = integer_field(params, "value", 11, 18);
+    } else if (out.key == "ui.fontFamily" || out.key == "editor.fontFamily") {
+        if (!out.value.is_string()) {
+            throw ApiError(ErrorCode::InvalidParams, "Setting value must be a string");
+        }
+        const std::string family = out.value.get<std::string>();
+        if (family.size() > 128 || !anvil::is_valid_font_family(family)) {
+            throw ApiError(ErrorCode::InvalidParams, "Invalid font family");
+        }
+    } else if (out.key == "editor.fontLigatures") {
+        if (!out.value.is_boolean()) {
+            throw ApiError(ErrorCode::InvalidParams, "Setting value must be boolean");
+        }
     } else if (out.key == "lsp.clangdArgs") {
         if (!out.value.is_array() || out.value.size() > 32) {
             throw ApiError(ErrorCode::InvalidParams,

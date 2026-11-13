@@ -153,6 +153,67 @@ TEST(Validate, WorkspaceAndSettings) {
                       Json{{"key", "lsp.clangdArgs"}, {"value", Json::array({1})}});
               }),
               ErrorCode::InvalidParams);
+
+    for (const char* theme : {"auto", "dark", "light", "high-contrast"}) {
+        EXPECT_EQ(validate::parse_settings_set(Json{{"key", "ui.theme"}, {"value", theme}})
+                      .value.get<std::string>(),
+                  theme);
+    }
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(Json{{"key", "ui.theme"}, {"value", "neon"}});
+              }),
+              ErrorCode::InvalidParams);
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(Json{{"key", "ui.theme"}, {"value", 3}});
+              }),
+              ErrorCode::InvalidParams);
+
+    EXPECT_EQ(validate::parse_settings_set(Json{{"key", "ui.fontSize"}, {"value", 18}})
+                  .value.get<int>(),
+              18);
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(Json{{"key", "ui.fontSize"}, {"value", 10}});
+              }),
+              ErrorCode::InvalidParams);
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(Json{{"key", "ui.fontSize"}, {"value", 19}});
+              }),
+              ErrorCode::InvalidParams);
+
+    EXPECT_EQ(validate::parse_settings_set(
+                  Json{{"key", "ui.fontFamily"}, {"value", "JetBrains Mono"}})
+                  .value.get<std::string>(),
+              "JetBrains Mono");
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "editor.fontFamily"}, {"value", "Mono; } body { display:none"}});
+              }),
+              ErrorCode::InvalidParams);
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "ui.fontFamily"}, {"value", std::string(129, 'a')}});
+              }),
+              ErrorCode::InvalidParams);
+
+    for (const char* mode : {"compact", "normal", "relaxed"}) {
+        EXPECT_EQ(validate::parse_settings_set(
+                      Json{{"key", "editor.lineHeight"}, {"value", mode}})
+                      .value.get<std::string>(),
+                  mode);
+    }
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "editor.lineHeight"}, {"value", "huge"}});
+              }),
+              ErrorCode::InvalidParams);
+    EXPECT_FALSE(validate::parse_settings_set(
+                     Json{{"key", "editor.fontLigatures"}, {"value", false}})
+                     .value.get<bool>());
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "editor.fontLigatures"}, {"value", "yes"}});
+              }),
+              ErrorCode::InvalidParams);
 }
 
 TEST(Validate, LspDocuments) {

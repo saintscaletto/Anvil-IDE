@@ -13,6 +13,7 @@ add_executable(anvil_core_tests
     test_recent.cpp
     test_redact.cpp
     test_sandbox.cpp
+    test_settings.cpp
     test_seccomp.cpp
     test_server.cpp
     test_strings.cpp

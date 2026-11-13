@@ -1,9 +1,11 @@
 #include "anvil/settings.hpp"
 
+#include <cctype>
 #include <utility>
 
 #include "anvil/util/fs_util.hpp"
 #include "anvil/util/log.hpp"
+#include "anvil/util/strings.hpp"
 
 namespace anvil {
 namespace {
@@ -18,11 +20,20 @@ constexpr const char* kClangdArgs = "lsp.clangdArgs";
 constexpr const char* kEnableProjectConfig = "lsp.enableProjectConfig";
 constexpr const char* kAllowUnsandboxedLsp = "security.allowUnsandboxedLsp";
 constexpr const char* kHideGit = "explorer.hideGit";
+constexpr const char* kUiTheme = "ui.theme";
+constexpr const char* kUiFontFamily = "ui.fontFamily";
+constexpr const char* kUiFontSize = "ui.fontSize";
+constexpr const char* kEditorFontFamily = "editor.fontFamily";
+constexpr const char* kEditorFontLigatures = "editor.fontLigatures";
+constexpr const char* kEditorLineHeight = "editor.lineHeight";
 
 bool is_known_key(const std::string& key) {
     return key == kFontSize || key == kTabSize || key == kWordWrap || key == kMinimap ||
            key == kFormatOnSave || key == kClangdPath || key == kClangdArgs ||
-           key == kEnableProjectConfig || key == kAllowUnsandboxedLsp || key == kHideGit;
+           key == kEnableProjectConfig || key == kAllowUnsandboxedLsp || key == kHideGit ||
+           key == kUiTheme || key == kUiFontFamily || key == kUiFontSize ||
+           key == kEditorFontFamily || key == kEditorFontLigatures ||
+           key == kEditorLineHeight;
 }
 
 int bounded_int(const Json& value, int fallback, int min_value, int max_value) {
@@ -61,6 +72,31 @@ std::vector<std::string> string_array_or(const Json& value) {
 
 }  // namespace
 
+// Font families are data, never CSS. Only printable family characters are
+// accepted; quotes, braces, semicolons and control characters are rejected so
+// a persisted value cannot break out of the CSS declaration built by the UI.
+bool is_valid_font_family(std::string_view value) {
+    if (value.size() > 128) return false;
+    if (!strings::is_valid_utf8(value)) return false;
+    for (const unsigned char c : value) {
+        if (c < 0x20 || c == 0x7f) return false;
+        if (c >= 0x80) continue;
+        if (std::isalnum(c) != 0 || c == ' ' || c == '-' || c == '_' || c == '.' || c == '+') {
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
+bool is_valid_theme_id(std::string_view value) {
+    return value == "auto" || value == "dark" || value == "light" || value == "high-contrast";
+}
+
+bool is_valid_line_height_mode(std::string_view value) {
+    return value == "compact" || value == "normal" || value == "relaxed";
+}
+
 void Settings::reset_defaults() {
     values_ = Json{
         {kFontSize, 14},
@@ -73,6 +109,12 @@ void Settings::reset_defaults() {
         {kEnableProjectConfig, false},
         {kAllowUnsandboxedLsp, false},
         {kHideGit, true},
+        {kUiTheme, "auto"},
+        {kUiFontFamily, ""},
+        {kUiFontSize, 12},
+        {kEditorFontFamily, ""},
+        {kEditorFontLigatures, true},
+        {kEditorLineHeight, "normal"},
     };
 }
 
@@ -156,6 +198,41 @@ void Settings::validate_assignment(const std::string& key, const Json& value) co
                 throw ApiError(ErrorCode::InvalidParams, "Invalid lsp.clangdArgs entry");
             }
         }
+    } else if (key == kUiTheme) {
+        if (!value.is_string()) {
+            throw ApiError(ErrorCode::InvalidParams, "ui.theme must be a string");
+        }
+        const std::string theme = value.get<std::string>();
+        if (!is_valid_theme_id(theme)) {
+            throw ApiError(ErrorCode::InvalidParams, "Invalid ui.theme");
+        }
+    } else if (key == kEditorLineHeight) {
+        if (!value.is_string()) {
+            throw ApiError(ErrorCode::InvalidParams, "editor.lineHeight must be a string");
+        }
+        const std::string mode = value.get<std::string>();
+        if (!is_valid_line_height_mode(mode)) {
+            throw ApiError(ErrorCode::InvalidParams, "Invalid editor.lineHeight");
+        }
+    } else if (key == kUiFontSize) {
+        if (!value.is_number_integer()) {
+            throw ApiError(ErrorCode::InvalidParams, "ui.fontSize must be an integer");
+        }
+        const auto number = value.get<std::int64_t>();
+        if (number < 11 || number > 18) {
+            throw ApiError(ErrorCode::InvalidParams, "ui.fontSize must be 11..18");
+        }
+    } else if (key == kUiFontFamily || key == kEditorFontFamily) {
+        if (!value.is_string()) {
+            throw ApiError(ErrorCode::InvalidParams, key + " must be a string");
+        }
+        if (!is_valid_font_family(value.get<std::string>())) {
+            throw ApiError(ErrorCode::InvalidParams, "Invalid " + key);
+        }
+    } else if (key == kEditorFontLigatures) {
+        if (!value.is_boolean()) {
+            throw ApiError(ErrorCode::InvalidParams, key + " must be boolean");
+        }
     }
 }
 
@@ -235,6 +312,36 @@ bool Settings::allow_unsandboxed_lsp() const {
 bool Settings::hide_git() const {
     std::lock_guard lock(mutex_);
     return bool_or(values_.value(kHideGit, Json(true)), true);
+}
+
+std::string Settings::ui_theme() const {
+    std::lock_guard lock(mutex_);
+    return string_or(values_.value(kUiTheme, Json("auto")), "auto");
+}
+
+std::string Settings::ui_font_family() const {
+    std::lock_guard lock(mutex_);
+    return string_or(values_.value(kUiFontFamily, Json("")), "");
+}
+
+int Settings::ui_font_size() const {
+    std::lock_guard lock(mutex_);
+    return bounded_int(values_.value(kUiFontSize, Json(12)), 12, 11, 18);
+}
+
+std::string Settings::editor_font_family() const {
+    std::lock_guard lock(mutex_);
+    return string_or(values_.value(kEditorFontFamily, Json("")), "");
+}
+
+bool Settings::editor_font_ligatures() const {
+    std::lock_guard lock(mutex_);
+    return bool_or(values_.value(kEditorFontLigatures, Json(true)), true);
+}
+
+std::string Settings::editor_line_height() const {
+    std::lock_guard lock(mutex_);
+    return string_or(values_.value(kEditorLineHeight, Json("normal")), "normal");
 }
 
 std::filesystem::path Settings::file_path() const {

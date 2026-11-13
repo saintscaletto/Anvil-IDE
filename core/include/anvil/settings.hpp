@@ -3,11 +3,18 @@
 #include <filesystem>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "anvil/error.hpp"
 
 namespace anvil {
+
+// Shared validation helpers. The UI persists these values and the core must
+// enforce the same rules at the IPC boundary and when settings.json is loaded.
+[[nodiscard]] bool is_valid_font_family(std::string_view value);
+[[nodiscard]] bool is_valid_theme_id(std::string_view value);
+[[nodiscard]] bool is_valid_line_height_mode(std::string_view value);
 
 class Settings {
 public:
@@ -27,6 +34,12 @@ public:
     [[nodiscard]] bool enable_project_config() const;
     [[nodiscard]] bool allow_unsandboxed_lsp() const;
     [[nodiscard]] bool hide_git() const;
+    [[nodiscard]] std::string ui_theme() const;
+    [[nodiscard]] std::string ui_font_family() const;
+    [[nodiscard]] int ui_font_size() const;
+    [[nodiscard]] std::string editor_font_family() const;
+    [[nodiscard]] bool editor_font_ligatures() const;
+    [[nodiscard]] std::string editor_line_height() const;
 
     [[nodiscard]] std::filesystem::path file_path() const;
 
