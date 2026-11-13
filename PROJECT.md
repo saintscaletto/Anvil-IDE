@@ -1014,9 +1014,9 @@ Typecheck/build, E2E screenshots per theme, manual contrast check.
   boot info applies the persisted theme before the first frame.
 - CSS tokens are theme-scoped; Monaco registers `anvil-dark`, `anvil-light`,
   and `anvil-high-contrast`.
-- `npm run check:contrast` passes 4.5:1 for all three themes; screenshots:
-  `docs/screenshots/0.0.2/{ru-light-editor,ru-high-contrast-editor,
-  en-dark-welcome}.png`.
+- `npm run check:contrast` passes 4.5:1 for all three themes; 1920×1080
+  screenshots: `docs/screenshots/0.0.2/{ru-light-editor,
+  ru-high-contrast-editor,en-dark-welcome}.png`.
 
 ---
 
@@ -1189,8 +1189,9 @@ font switch.
   monospace fonts; no network or project access.
 - Family validation is shared by `settings.cpp` and `validate.cpp` and covered
   in `test_settings.cpp` / `test_validate.cpp` (injection attempts rejected).
-- Screenshot at UI font 18 px: `docs/screenshots/0.0.2/ru-light-large-font.png`;
-  panel tabs wrap and the status bar caps chrome text so nothing clips.
+- Screenshot at UI font 18 px and 1280×800:
+  `docs/screenshots/0.0.2/ru-light-large-font.png`; panel tabs wrap and the
+  status bar caps chrome text so nothing clips.
 
 ---
 
