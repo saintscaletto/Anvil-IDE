@@ -18,7 +18,7 @@ export const defaultSettings: Settings = {
   "lsp.enableProjectConfig": false,
   "security.allowUnsandboxedLsp": false,
   "explorer.hideGit": true,
-  "ui.theme": "auto",
+  "ui.theme": "dark",
   "ui.fontFamily": "",
   "ui.fontSize": 12,
   "ui.language": "auto",

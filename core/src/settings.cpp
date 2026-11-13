@@ -114,7 +114,7 @@ void Settings::reset_defaults() {
         {kEnableProjectConfig, false},
         {kAllowUnsandboxedLsp, false},
         {kHideGit, true},
-        {kUiTheme, "auto"},
+        {kUiTheme, "dark"},
         {kUiFontFamily, ""},
         {kUiFontSize, 12},
         {kEditorFontFamily, ""},
@@ -329,7 +329,7 @@ bool Settings::hide_git() const {
 
 std::string Settings::ui_theme() const {
     std::lock_guard lock(mutex_);
-    return string_or(values_.value(kUiTheme, Json("auto")), "auto");
+    return string_or(values_.value(kUiTheme, Json("dark")), "dark");
 }
 
 std::string Settings::ui_font_family() const {

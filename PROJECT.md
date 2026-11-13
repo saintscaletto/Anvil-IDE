@@ -6,13 +6,13 @@
 
 | Field | Value |
 |---|---|
-| File version | 1.0 |
-| Applies to | Anvil IDE **0.0.1** (released), planning for **0.0.2** |
+| File version | 1.1 |
+| Applies to | Anvil IDE **0.0.1** (released), **0.0.2** in progress |
 | Last updated | 2026-11-13 |
 | Owner | Project author |
 | Repository | `github.com/saintscaletto/anvilide` |
-| Working branch | `devel/0.0.1` |
-| Current artifact | `dist/anvil_0.0.1-1_amd64.deb` |
+| Working branch | `devel/0.0.2` |
+| Current artifact | `dist/anvil_0.0.1-1_amd64.deb` (0.0.2 not packaged yet) |
 | Target platform | Ubuntu 24.04 LTS, x86_64 |
 | License | Apache-2.0 (bundled Monaco/React/Zustand are MIT) |
 
@@ -26,14 +26,16 @@
 - **Security:** workspace jail, argv-only spawn, sandboxed clangd
   (bubblewrap + seccomp), no telemetry, no remote content. §2 is binding.
 - **Released:** 0.0.1 — open/edit C++, clangd intelligence, diagnostics, `.deb`.
-- **Next:** 0.0.2 — IMP-001…IMP-005 in §9 (Russian UI, themes, Codewhale agent,
-  fonts, ROS 2 environment resolution).
+- **Next:** 0.0.2 — IMP-001/IMP-002/IMP-004 delivered on `devel/0.0.2`
+  (Russian UI, themes, fonts); IMP-003 (Codewhale) and IMP-005 (ROS 2
+  environment) remain.
 - **Roadmap:** §7 — global plan with per-item status for Phase 1–4, release
   map, cross-cutting workstreams, and the definition of 1.0.
 - **Your two backlog fields:** §8 Bugs and §9 Improvements. Add entries with
   the templates; never delete old ones.
 - **Build/test:** `./scripts/build.sh release`, `./scripts/test.sh`,
-  `./scripts/build-deb.sh`.
+  `./scripts/build-deb.sh`; UI gates: `npm run typecheck`, `npm run build`,
+  `npm run check:contrast`, `npm run check:i18n`.
 - **For a new chat:** use the prompt in §0.1 verbatim.
 
 ---
@@ -99,8 +101,8 @@ IDE with the startup and footprint of a lightweight editor.
   all filesystem, workspace, language-server, and security logic lives in a
   separate C++ core process.
 - **Language scope:** C and C++ are first-class. Rust and Python are planned
-  through LSP (Phase 2). The UI is English in 0.0.1; Russian localization is
-  scheduled for 0.0.2 (IMP-001).
+  through LSP (Phase 2). The UI shipped in English in 0.0.1; 0.0.2 adds
+  English/Russian switching (IMP-001, delivered on `devel/0.0.2`).
 
 ### 1.1. What Anvil is not
 
@@ -208,7 +210,7 @@ conflicts with an invariant, stop and name the conflict.
 |---|---|---|
 | Core | `core/` | Workspace jail, fs, watcher, settings, recent/state, LSP lifecycle, sandbox, audit |
 | Shell | `shell/` | Window, WebKit view, JS bridge, native dialogs, core supervision, workspace allowlist, smoke/E2E/screenshot |
-| UI | `apps/desktop/` | React/Monaco editor, explorer, tabs, panels, palette, settings dialogs |
+| UI | `apps/desktop/` | React/Monaco editor, explorer, tabs, panels, palette, settings dialogs, i18n, themes/fonts |
 | Packaging | `packaging/`, `scripts/` | Debian metadata, build/stage/verify, SBOM, signed APT repo |
 | Docs | `docs/` | Architecture, threat model, build guide, benchmarks, ADR, release checklist |
 
@@ -280,22 +282,39 @@ metadata in 0.0.1 except files the user creates.
 | `--bg-active` | `#2e436e` | Selection, active states |
 | `--border` | `#393b40` | Dividers |
 | `--text-primary` | `#dfe1e5` | Primary text |
-| `--text-muted` | `#8b8e93` | Secondary text |
-| `--accent` | `#4a88c7` | Primary action, focus |
-| `--error` | `#f75464` | Errors |
+| `--text-muted` | `#94979c` | Secondary text |
+| `--accent` | `#4a88c7` | Brand accent, borders, focus rings |
+| `--accent-text` | `#7fb4e8` | Accent-colored text (AA on dark) |
+| `--accent-button` | `#2f6fa8` | Solid primary button (white text) |
+| `--error` | `#f75464` | Error borders and indicators |
+| `--error-text` | `#ff6c7a` | Error text (AA on panels) |
+| `--error-button` | `#b3261e` | Solid danger button (white text) |
 | `--warning` | `#e5b567` | Warnings |
 | `--success` | `#73c991` | Success, additions |
+| `--status-bg` / `--status-text` | dark blue / near-white | Status bar |
 
+- **Themes:** `ui.theme` selects `anvil-dark`, `anvil-light`, or
+  `anvil-high-contrast`; `auto` follows `prefers-color-scheme`. Tokens are
+  scoped under `:root[data-theme="…"]` in `styles.css`; `theme/apply.ts` sets
+  the attribute and color scheme. Monaco registers one theme per app theme.
+  No component may hardcode a color outside the preview swatches.
+- **Fonts:** UI and editor families are validated data stored in settings and
+  applied through `--font-ui`, `--font-code`, and `--ui-font-size` by
+  `theme/fonts.ts`. The default stacks are system sans and the code stack
+  below. Font size scales all chrome; the status bar caps its own chrome text
+  so it remains usable at 18 px.
 - UI font stack: system sans (`-apple-system, "Segoe UI", Roboto,
   "Noto Sans", sans-serif`). Code: `"JetBrains Mono", "Fira Code", Consolas,
   "Liberation Mono", monospace`.
 - Sizes: activity bar 48 px, sidebar 260 px, right panel 320 px, title bar
   36 px, tab bar 34 px, breadcrumbs 22 px, status bar 24 px. 8 px baseline.
 - Radius: 3 px inputs/buttons, 6 px modals/panels, 12 px chips.
-- Monaco theme: `anvil-dark` in `apps/desktop/src/editor/theme.ts`; token colors
-  follow the table there. Do not hardcode colors in components — use tokens.
+- Monaco themes: `anvil-dark`, `anvil-light`, `anvil-high-contrast` in
+  `apps/desktop/src/editor/theme.ts`; token colors follow the tables there. Do
+  not hardcode colors in components — use tokens.
 - Accessibility: visible `:focus-visible`, ARIA labels on icon-only buttons,
-  focus trap in modals, keyboard path for every primary action, AA contrast.
+  focus trap in modals, keyboard path for every primary action. All three
+  themes pass WCAG AA (4.5:1) for UI text pairs (`npm run check:contrast`).
 
 ### 3.7. Settings schema (current)
 
@@ -311,10 +330,22 @@ metadata in 0.0.1 except files the user creates.
 | `lsp.enableProjectConfig` | bool | false | Reads untrusted `.clangd` |
 | `security.allowUnsandboxedLsp` | bool | false | Dev builds only |
 | `explorer.hideGit` | bool | true | Hide `.git` in tree |
+| `editor.fontFamily` | string | `""` (default mono stack) | Validated family name |
+| `editor.fontLigatures` | bool | true | Monaco |
+| `editor.lineHeight` | string | `normal` | `compact`, `normal`, `relaxed` |
+| `ui.theme` | string | `dark` | `auto`, `dark`, `light`, `high-contrast` |
+| `ui.fontFamily` | string | `""` (system sans) | Validated family name |
+| `ui.fontSize` | int | 11–18, default 12 | Scales UI chrome via `--ui-font-size` |
+| `ui.language` | string | `auto` | `auto`, `en`, `ru` |
 
 New settings must be added in three places: defaults and validation in
 `core/src/settings.cpp`, IPC validation in `core/src/ipc/validate.cpp`, and the
 typed interface plus UI in `apps/desktop/src/stores/settings.ts`.
+
+The shell reads only the persisted `ui.theme` id for first-paint boot and the
+normalized system locale for `auto`; core remains the owner and validator of
+both values. `shell/listFonts` enumerates fontconfig families read-only for the
+font picker.
 
 ---
 
@@ -333,7 +364,7 @@ core/
   src/recent.cpp            recent projects + workspace state
   src/git_branch.cpp        read-only .git/HEAD inspection
   src/main.cpp              CLI: --stdio, --self-test, --dev
-  tests/                    51 GoogleTest cases + fake LSP server
+  tests/                    55 GoogleTest cases + fake LSP server
 shell/src/main.cpp          GTK3/WebKitGTK shell, bridge, dialogs, E2E
 apps/desktop/
   src/layout/               TitleBar, ActivityBar, Sidebar, EditorArea,
@@ -342,9 +373,12 @@ apps/desktop/
   src/editor/               models, theme, providers, markers, text sync
   src/stores/               Zustand: core, workspace, editor, lsp, settings, ui
   src/ipc/                  typed bridge, API wrappers, types
-  src/commands.ts           command registry + keybindings
+  src/commands.ts           command registry (message-keyed titles)
   src/actions.ts            user-facing workflows
-  src/styles.css            design tokens and layout
+  src/i18n/                 typed en/ru dictionaries, t(), pluralization
+  src/theme/                theme resolution and font application
+  scripts/                  contrast and untranslated-text gates
+  src/styles.css            theme-scoped design tokens and layout
 assets/                     icon PNG/SVG
 packaging/debian/           control, changelog, copyright, desktop, metainfo,
                             maintainer scripts, bwrap AppArmor profile
@@ -402,10 +436,12 @@ documented in `docs/BUILD.md` §4. It is compiled out of release builds.
 ### 5.4. Tests and checks
 
 ```bash
-./scripts/test.sh              # 51 core/security/integration tests
+./scripts/test.sh              # 55 core/security/integration tests
 ./scripts/prepare-fixtures.sh  # generate the fixture's compile_commands.json
 ./scripts/test-e2e.sh          # shell workspace-allowlist + bridge smoke
 cd apps/desktop && npm run typecheck && npm run build
+cd apps/desktop && npm run check:contrast   # WCAG AA gate for all three themes
+cd apps/desktop && npm run check:i18n       # fails on literal untranslated UI text
 ```
 
 The fixture build directory is git-ignored, so a fresh clone must run
@@ -431,10 +467,16 @@ calculation, `dpkg-deb`, signed APT repo generation, and the verifier.
 | Idle PSS (no workspace) | ~255 MiB | < 300 MiB | Met (PSS) |
 | Full stack with clangd | > 800 MiB RSS | < 300 MiB | Missed |
 | `.deb` size | ~1.35 MiB | < 15 MiB | Met |
-| Core/security tests | 51/51 | all | Met |
+| Core/security tests | 55/55 | all | Met |
 
 Details and methodology: `docs/benchmarks.md`. Do not quote these numbers
 without re-measuring on the target machine.
+
+On `devel/0.0.2`, startup and memory have **not** been re-measured yet. The UI
+bundle grew from ~3.62 MB to ~3.67 MB (+1.4%) and CSS from ~175.6 KB to
+~183.5 KB (+4.5%); the localization dictionaries and three Monaco themes are
+bundled, with no new network or runtime downloads. Re-measure before shipping
+0.0.2.
 
 ---
 
@@ -453,7 +495,15 @@ without re-measuring on the target machine.
   quick open; settings; security status; about.
 - Status bar: branch, problem counts, cursor, indentation, EOL, encoding,
   language, clangd state, sandbox state.
-- Smoke/E2E/screenshot modes; shell workspace allowlist E2E.
+- Appearance: Anvil Dark, Anvil Light, and Anvil High Contrast themes with
+  `auto` system following; UI and editor font family/size, ligatures, and line
+  height, persisted in settings. All text pairs pass WCAG AA.
+- Localization: English and Russian UI dictionaries with live switching
+  (`Automatic`, English, Русский), typed message keys, pluralization, localized
+  dates, and `<html lang>`. Technical diagnostics/logs stay in their original
+  language; native GTK dialogs follow the system locale.
+- Smoke/E2E/screenshot modes; shell workspace allowlist E2E. 0.0.2 evidence
+  screenshots live in `docs/screenshots/0.0.2/`.
 - `.deb` with desktop entry, AppStream metadata, icons, SBOM, threat model,
   bwrap AppArmor profile, signed local APT repository.
 
@@ -475,6 +525,7 @@ disabled.
 | L-05 | Clean-VM `apt install` not executed in container | Install path unverified end-to-end | Owner to verify on a real Ubuntu 24.04 machine |
 | L-06 | Demo APT signing key | Not for public distribution | Generate an offline release key before publishing |
 | L-07 | Container blocks user namespaces | Release LSP fails closed there | AppArmor profile shipped; verify on a real desktop |
+| L-08 | Native GTK dialog labels follow the system locale, not `ui.language` | File/folder dialogs stay in the system language | Documented; no fix planned for 0.0.2 |
 
 Owner-reported bugs belong in §8, not here. If the owner promotes a limitation
 to a required fix, convert it to a `BUG-xxx` entry.
@@ -508,7 +559,7 @@ knows what comes next.
 | Release | Theme | Contents | Status |
 |---|---|---|---|
 | **0.0.1** | Phase 1 MVP | C++ editing, clangd intelligence, sandbox, `.deb` | Shipped 2026-11-13 |
-| **0.0.2** | Personalization + environment + agent | IMP-001…IMP-005 (§7.6) | Planned |
+| **0.0.2** | Personalization + environment + agent | IMP-001…IMP-005 (§7.6) | In progress — IMP-001/002/004 delivered on `devel/0.0.2`; IMP-003/005 pending |
 | 0.0.3 (tentative) | Multi-language + navigation | Phase 2 + performance debt L-01…L-03 | Planned |
 | 0.0.4 (tentative) | Build / run / debug | Phase 3 | Planned |
 | 0.0.5 (tentative) | Parity + ecosystem | Phase 4 remainder | Planned |
@@ -609,56 +660,64 @@ extension surface.
 - [ ] Refactorings beyond LSP: extract function, inline variable
       (through `libclang` in the core).
 - [ ] Global index (Tree-sitter + `libclang`) for instant project-wide search.
-- [~] AI assistant panel. **IMP-003** brings a Codewhale connector to 0.0.2
-      as an opt-in, read-only MVP. Other providers and agentic tool use are
-      not scheduled.
+- [ ] AI assistant panel. **IMP-003** brings a Codewhale connector to 0.0.2
+      as an opt-in, read-only MVP; it is not started yet. Other providers and
+      agentic tool use are not scheduled.
 - [ ] Plugin SDK with a WASM sandbox and explicit capabilities.
-- [~] Light theme and high-contrast theme. **IMP-002** delivers theme
-      selection in 0.0.2, including a light and a high-contrast theme.
+- [x] Light theme and high-contrast theme. **IMP-002** delivered theme
+      selection in 0.0.2: Anvil Dark, Anvil Light, Anvil High Contrast, and
+      `auto`, with Monaco variants and an AA contrast gate.
 - [x] Settings UI. Shipped in 0.0.1 as a modal with editor, C/C++, and
-      security sections (the master prompt considered a JSON file enough for
-      v1).
+      security sections; 0.0.2 adds Appearance (language, theme, fonts).
 - [ ] Auto-updater through APT, with explicit user consent.
-- [~] Localization. **IMP-001** delivers Russian in 0.0.2; more languages are
-      not scheduled yet.
+- [x] Localization. **IMP-001** delivered English/Russian switching in 0.0.2
+      with typed dictionaries, pluralization, and `<html lang>`. The structure
+      supports more languages; none are scheduled yet.
 - [ ] Secret storage through libsecret/D-Bus. Nothing in 0.0.1 needs secrets;
       this becomes mandatory before Git credentials or API keys are stored.
 - [x] Security audit log with redaction (shipped early in 0.0.1).
 - [ ] Dependency auditing in CI (`npm audit` is manual today; C++ and Rust
       dependency audits are not wired into a pipeline).
-- [~] Font selection (**IMP-004**, owner request, not in the master prompt):
-      planned for 0.0.2.
+- [x] Font selection (**IMP-004**, owner request, not in the master prompt):
+      delivered in 0.0.2 for UI and editor families, sizes, ligatures, and line
+      height, with fontconfig enumeration in the shell.
 
 ### 7.6. Release 0.0.2 scope (pulled-forward Phase 4 items)
 
 Theme: **“Make it yours, make it resolve your environment, connect an agent.”**
 
-| ID | Item | Type | Depends on | Exit criterion |
-|---|---|---|---|---|
-| IMP-005 | Automatic dependency/environment resolution (ROS 2 / rclcpp) | Improvement | — | ROS 2 fixture resolves `rclcpp` after a confirmed environment profile; no auto-execution |
-| IMP-002 | Theme selection in Settings | Improvement | Appearance foundation | Theme switches live and persists, AA contrast |
-| IMP-004 | Font selection (UI + editor) | Improvement | Appearance foundation | Fonts switch live, persist, fallback safe |
-| IMP-001 | Russian UI localization | Improvement | — | Language switch works without restart; all UI strings translated |
-| IMP-003 | Connect Codewhale agent to the AI panel | Improvement | IMP-001 optional | Opt-in prompt/response with streaming; no automatic edits |
+| ID | Item | Type | Depends on | Status | Exit criterion |
+|---|---|---|---|---|---|
+| IMP-005 | Automatic dependency/environment resolution (ROS 2 / rclcpp) | Improvement | — | PLANNED | ROS 2 fixture resolves `rclcpp` after a confirmed environment profile; no auto-execution |
+| IMP-002 | Theme selection in Settings | Improvement | Appearance foundation | DONE (0.0.2) | Theme switches live and persists, AA contrast |
+| IMP-004 | Font selection (UI + editor) | Improvement | Appearance foundation | DONE (0.0.2) | Fonts switch live, persist, fallback safe |
+| IMP-001 | Russian UI localization | Improvement | — | DONE (0.0.2) | Language switch works without restart; all UI strings translated |
+| IMP-003 | Connect Codewhale agent to the AI panel | Improvement | IMP-001 optional | PLANNED | Opt-in prompt/response with streaming; no automatic edits |
 
-**Recommended order:** IMP-002 + IMP-004 (shared appearance work) → IMP-005
-(user-blocking, security-sensitive, needs the most review) → IMP-001 →
-IMP-003 (needs an ADR and a security review). If the owner wants the fastest
-relief for daily work, start with IMP-005 and run appearance work in parallel.
+**Recommended order:** appearance (IMP-002 + IMP-004) and localization
+(IMP-001) are delivered on `devel/0.0.2`. Next: IMP-005 (user-blocking,
+security-sensitive, needs the most review), then IMP-003 (needs an ADR, a
+security review, and a fake-Codewhale transport test).
 
 **0.0.2 exit criteria (all required):**
 
-- All five IMPs meet their acceptance criteria in §9.
-- `./scripts/test.sh` passes; new tests cover new external input and the
-  environment profile.
-- `npm run typecheck && npm run build` passes; E2E screenshots in `en` and `ru`.
-- `./scripts/build-deb.sh` produces a `.deb` under 15 MiB and
-  `./scripts/verify-deb.sh` passes.
-- Startup and idle memory are not worse than 0.0.1 by more than 10%; record
-  the numbers in `docs/benchmarks.md`.
-- `PROJECT.md` statuses, §11 changelog, and `docs/security/threat-model.md`
-  are updated.
-- No invariant from §2 is weakened.
+- [x] IMP-001, IMP-002, IMP-004 meet their acceptance criteria in §9 (delivered
+      on `devel/0.0.2`).
+- [ ] IMP-003 and IMP-005 meet their acceptance criteria in §9.
+- [x] `./scripts/test.sh` passes (55/55); new settings validation tests cover
+      new external input.
+- [ ] New tests cover the environment profile and the AI transport.
+- [x] `npm run typecheck && npm run build` passes.
+- [x] UI gates pass: `npm run check:contrast` (three themes, AA) and
+      `npm run check:i18n` (no literal untranslated JSX text).
+- [x] Screenshots in `en` and `ru` exist under `docs/screenshots/0.0.2/`.
+- [ ] `./scripts/build-deb.sh` produces a `.deb` under 15 MiB and
+      `./scripts/verify-deb.sh` passes.
+- [ ] Startup and idle memory are not worse than 0.0.1 by more than 10%; record
+      the numbers in `docs/benchmarks.md`.
+- [x] `PROJECT.md` statuses and §11 changelog are updated.
+- [ ] `docs/security/threat-model.md` is reviewed for IMP-003/IMP-005.
+- [x] No invariant from §2 is weakened by the delivered changes.
 
 **Explicitly out of 0.0.2:** build execution, debugger, terminal, Git writes,
 plugin sandbox, auto-update, Rust/Python servers. Do not start them unless the
@@ -794,7 +853,7 @@ approach, security constraints, acceptance criteria, verification.
 
 ### IMP-001 — Russian UI localization
 
-- **Status:** PLANNED (0.0.2)
+- **Status:** DONE (0.0.2)
 - **Priority:** high
 - **Area:** UI + shell + settings
 - **Why:** the owner and a significant part of the target audience work in
@@ -871,6 +930,18 @@ persisted choice, without translating technical diagnostics.
 `npm run typecheck && npm run build`; `./scripts/test.sh`; E2E screenshots;
 manual sweep of every panel with the language set to Russian.
 
+**Delivered evidence (0.0.2):**
+- `apps/desktop/src/i18n/{en,ru,index}.tsx`: typed dictionaries,
+  `satisfies Record<MessageKey, string>`, pluralization, `Intl` dates.
+- `ui.language` is validated in `core/src/settings.cpp` and
+  `core/src/ipc/validate.cpp` (tests in `test_settings.cpp` /
+  `test_validate.cpp`); the shell passes normalized `LC_ALL`/`LC_MESSAGES`/
+  `LANG` plus `--lang`/`ANVIL_LANG` overrides in boot info.
+- `npm run check:i18n` finds no literal untranslated JSX text or attributes;
+  screenshots: `docs/screenshots/0.0.2/{ru-light-editor,ru-light-settings,
+  en-dark-settings,ru-light-large-font}.png`.
+- `./scripts/test.sh`: 55/55; `npm run typecheck && npm run build`: pass.
+
 **Open questions**
 - Should `auto` also consult `LANGUAGE`? (Proposal: yes, after `LC_ALL`.)
 - Should the language switcher also appear in the command palette?
@@ -880,7 +951,7 @@ manual sweep of every panel with the language set to Russian.
 
 ### IMP-002 — Theme selection in Settings
 
-- **Status:** PLANNED (0.0.2)
+- **Status:** DONE (0.0.2)
 - **Priority:** high
 - **Area:** UI (appearance), settings
 - **Why:** the dark-only palette is a blocker for users in bright environments
@@ -935,6 +1006,16 @@ persistence.
 
 **Verification**
 Typecheck/build, E2E screenshots per theme, manual contrast check.
+
+**Delivered evidence (0.0.2):**
+- `ui.theme` (`auto|dark|light|high-contrast`) validated in core + IPC;
+  `theme/apply.ts` resolves `auto`, sets `data-theme` and `color-scheme`;
+  boot info applies the persisted theme before the first frame.
+- CSS tokens are theme-scoped; Monaco registers `anvil-dark`, `anvil-light`,
+  and `anvil-high-contrast`.
+- `npm run check:contrast` passes 4.5:1 for all three themes; screenshots:
+  `docs/screenshots/0.0.2/{ru-light-editor,ru-high-contrast-editor,
+  en-dark-welcome}.png`.
 
 ---
 
@@ -1037,7 +1118,7 @@ with the real binary; screenshots of consent, streaming, error, and stop.
 
 ### IMP-004 — Font selection
 
-- **Status:** PLANNED (0.0.2)
+- **Status:** DONE (0.0.2)
 - **Priority:** medium
 - **Area:** UI (appearance), settings, shell
 - **Why:** developers have strong font preferences; the current hardcoded stack
@@ -1098,6 +1179,17 @@ persistence, and safe fallbacks.
 **Verification**
 Typecheck/build; unit tests for family validation; E2E screenshots; manual
 font switch.
+
+**Delivered evidence (0.0.2):**
+- Settings → Appearance exposes UI/editor families, UI size (11–18), editor
+  size, line height, and ligatures. `theme/fonts.ts` applies validated values
+  through CSS variables; Monaco updates live.
+- `shell/listFonts` enumerates fontconfig families (bounded at 300) and marks
+  monospace fonts; no network or project access.
+- Family validation is shared by `settings.cpp` and `validate.cpp` and covered
+  in `test_settings.cpp` / `test_validate.cpp` (injection attempts rejected).
+- Screenshot at UI font 18 px: `docs/screenshots/0.0.2/ru-light-large-font.png`;
+  panel tabs wrap and the status bar caps chrome text so nothing clips.
 
 ---
 
@@ -1243,8 +1335,10 @@ banner and resolved diagnostics.
 
 - [ ] Code compiles with `-Wall -Wextra -Wpedantic -Werror`.
 - [ ] Tests pass (`./scripts/test.sh`), including new security-relevant tests.
-- [ ] `npm run typecheck` and `npm run build` pass for UI changes.
-- [ ] E2E/screenshot evidence exists for UI changes.
+- [ ] `npm run typecheck`, `npm run build`, `npm run check:contrast`, and
+      `npm run check:i18n` pass for UI changes.
+- [ ] E2E/screenshot evidence exists for UI changes (0.0.2 evidence:
+      `docs/screenshots/0.0.2/`).
 - [ ] `./scripts/build-deb.sh` succeeds and `verify-deb.sh` passes for
       release changes.
 - [ ] No invariant in §2 is weakened.
@@ -1308,7 +1402,7 @@ A change needs an explicit security note in the PR/summary and tests when it:
 | Version | Date | Theme | Delivered | Artifact |
 |---|---|---|---|---|
 | 0.0.1 | 2026-11-13 | Phase 1 MVP | C++ editing, clangd intelligence, sandbox, `.deb`, tests, threat model | `anvil_0.0.1-1_amd64.deb` |
-| 0.0.2 | planned | Personalization + environment + agent | IMP-001…IMP-005 | `anvil_0.0.2-1_amd64.deb` |
+| 0.0.2 | in progress | Personalization + environment + agent | IMP-001, IMP-002, IMP-004 delivered; IMP-003, IMP-005 pending | `anvil_0.0.2-1_amd64.deb` (not built) |
 
 ### 0.0.1 — 2026-11-13
 
@@ -1323,13 +1417,25 @@ A change needs an explicit security note in the PR/summary and tests when it:
 - 51 tests; `.deb` with SBOM, threat model, AppStream, bwrap AppArmor profile,
   signed local APT repo.
 
-### 0.0.2 — planned
+### 0.0.2 — in progress (`devel/0.0.2`)
 
-- IMP-001 Russian UI localization.
-- IMP-002 Theme selection in Settings.
-- IMP-003 Codewhale agent in the AI panel (opt-in, read-only MVP).
-- IMP-004 Font selection for UI and editor.
-- IMP-005 Automatic dependency/environment resolution for ROS 2 / rclcpp.
+Delivered:
+
+- **IMP-001 Russian UI localization:** typed `en`/`ru` dictionaries, live
+  switching via `ui.language`, system-locale detection, pluralization,
+  localized dates, translated ARIA labels, `check:i18n` gate.
+- **IMP-002 Theme selection:** Anvil Dark, Anvil Light, Anvil High Contrast,
+  and `auto`; theme-scoped CSS tokens; Monaco variants; pre-paint boot theme;
+  WCAG AA contrast gate; light theme darkens/adjusts semantic text tokens for
+  AA while keeping the brand accent hue.
+- **IMP-004 Font selection:** UI/editor font family, UI size 11–18, editor
+  size, line height, ligatures; fontconfig-backed `shell/listFonts`; validated
+  CSS variables and Monaco updates; large-font layout fixes.
+- Core settings schema and IPC validation extended; 55 tests pass.
+- Verification screenshots in `docs/screenshots/0.0.2/`; visual checks were run
+  under Xvfb with the real WebKitGTK shell.
+- Not started: IMP-003 (Codewhale, needs ADR/security review) and IMP-005
+  (ROS 2 environment, needs owner answers on distro/workspace policy).
 
 ---
 

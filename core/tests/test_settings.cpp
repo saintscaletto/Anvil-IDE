@@ -15,7 +15,7 @@ TEST(Settings, DefaultsAndPersistence) {
     settings.load(config);
 
     const auto defaults = settings.snapshot();
-    EXPECT_EQ(defaults["ui.theme"], "auto");
+    EXPECT_EQ(defaults["ui.theme"], "dark");
     EXPECT_EQ(defaults["ui.fontFamily"], "");
     EXPECT_EQ(defaults["ui.fontSize"], 12);
     EXPECT_EQ(defaults["editor.fontFamily"], "");
@@ -79,7 +79,7 @@ TEST(Settings, IgnoresInvalidPersistedValues) {
     Settings settings;
     settings.load(config);
     const auto values = settings.snapshot();
-    EXPECT_EQ(values["ui.theme"], "auto");
+    EXPECT_EQ(values["ui.theme"], "dark");
     EXPECT_EQ(values["ui.fontSize"], 12);
     EXPECT_EQ(values["ui.fontFamily"], "");
     EXPECT_EQ(values["editor.lineHeight"], "normal");

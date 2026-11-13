@@ -39,7 +39,7 @@ export const boot: BootInfo = {
   devMode: Boolean(window.__ANVIL_BOOT__?.devMode),
   initialWorkspace: window.__ANVIL_BOOT__?.initialWorkspace ?? "",
   e2eFile: window.__ANVIL_BOOT__?.e2eFile ?? "",
-  theme: window.__ANVIL_BOOT__?.theme ?? "auto",
+  theme: window.__ANVIL_BOOT__?.theme ?? "dark",
   locale: window.__ANVIL_BOOT__?.locale ?? "en",
 };
 

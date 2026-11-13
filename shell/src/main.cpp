@@ -87,19 +87,19 @@ std::filesystem::path shell_config_dir() {
 std::string initial_ui_theme() {
     const std::filesystem::path path = shell_config_dir() / "settings.json";
     std::ifstream input(path, std::ios::binary);
-    if (!input) return "auto";
+    if (!input) return "dark";
     std::string content((std::istreambuf_iterator<char>(input)),
                         std::istreambuf_iterator<char>());
-    if (content.size() > 256U * 1024U) return "auto";
+    if (content.size() > 256U * 1024U) return "dark";
     const Json parsed = Json::parse(content, nullptr, false);
-    if (parsed.is_discarded() || !parsed.is_object()) return "auto";
+    if (parsed.is_discarded() || !parsed.is_object()) return "dark";
     const auto item = parsed.find("ui.theme");
-    if (item == parsed.end() || !item->is_string()) return "auto";
+    if (item == parsed.end() || !item->is_string()) return "dark";
     const std::string theme = item->get<std::string>();
     if (theme == "auto" || theme == "dark" || theme == "light" || theme == "high-contrast") {
         return theme;
     }
-    return "auto";
+    return "dark";
 }
 
 // Enumerates installed font families through fontconfig. This is read-only and
