@@ -939,7 +939,8 @@ manual sweep of every panel with the language set to Russian.
   `LANG` plus `--lang`/`ANVIL_LANG` overrides in boot info.
 - `npm run check:i18n` finds no literal untranslated JSX text or attributes;
   screenshots: `docs/screenshots/0.0.2/{ru-light-editor,ru-light-settings,
-  en-dark-settings,ru-light-large-font}.png`.
+  en-dark-settings,ru-light-large-font,ru-auto-dark-editor}.png`; the last one
+  verifies `ui.language: auto` with `ANVIL_LANG=ru_RU.UTF-8`.
 - `./scripts/test.sh`: 55/55; `npm run typecheck && npm run build`: pass.
 
 **Open questions**
