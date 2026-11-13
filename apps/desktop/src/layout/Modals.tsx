@@ -4,6 +4,7 @@ import { CheckIcon, ShieldIcon, WarningIcon } from "../components/Icons";
 import { isValidEntryName } from "../lib/paths";
 import type { FontFamilyInfo, ThemePreference } from "../ipc/types";
 import { isValidFontFamily } from "../theme/fonts";
+import { tCount, useI18n, type MessageKey } from "../i18n";
 import { useCoreStore } from "../stores/core";
 import { useEditorStore } from "../stores/editor";
 import { useSettingsStore } from "../stores/settings";
@@ -16,17 +17,22 @@ import {
 } from "../actions";
 
 const THEME_OPTIONS = [
-  { id: "auto", label: "Automatic", hint: "Follow the system appearance" },
-  { id: "dark", label: "Anvil Dark", hint: "Default dark palette" },
-  { id: "light", label: "Anvil Light", hint: "For bright environments" },
-  { id: "high-contrast", label: "Anvil High Contrast", hint: "Stronger borders and focus" },
+  { id: "auto", labelKey: "settings.themeAuto", hintKey: "settings.themeAutoHint" },
+  { id: "dark", labelKey: "settings.themeDark", hintKey: "settings.themeDarkHint" },
+  { id: "light", labelKey: "settings.themeLight", hintKey: "settings.themeLightHint" },
+  {
+    id: "high-contrast",
+    labelKey: "settings.themeHighContrast",
+    hintKey: "settings.themeHighContrastHint",
+  },
 ] as const satisfies ReadonlyArray<{
   id: ThemePreference;
-  label: string;
-  hint: string;
+  labelKey: MessageKey;
+  hintKey: MessageKey;
 }>;
 
 function SettingsModal() {
+  const { t } = useI18n();
   const open = useUiStore((state) => state.settingsOpen);
   const setOpen = useUiStore((state) => state.setSettingsOpen);
   const values = useSettingsStore((state) => state.values);
@@ -62,7 +68,7 @@ function SettingsModal() {
     if (!isValidFontFamily(value)) {
       useUiStore
         .getState()
-        .toast("error", "Font family may contain letters, digits, spaces, and . _ - + only.");
+        .toast("error", t("settings.fontInvalid"));
       return;
     }
     if (value === values[key]) return;
@@ -73,26 +79,43 @@ function SettingsModal() {
       if (!installed && fonts.length > 0) {
         useUiStore
           .getState()
-          .toast("warning", `Font "${value}" is not installed; the fallback stack is used.`);
+          .toast("warning", t("settings.fontNotInstalled", { family: value }));
       }
     });
   };
 
   return (
     <Modal
-      title="Settings"
+      title={t("settings.title")}
       onClose={() => setOpen(false)}
       footer={
         <button type="button" className="primary-button" onClick={() => setOpen(false)}>
-          Done
+          {t("common.done")}
         </button>
       }
     >
       <section className="settings-section">
-        <h3>Appearance</h3>
+        <h3>{t("settings.appearance")}</h3>
+        <label className="setting-row">
+          <span>{t("settings.language")}</span>
+          <select
+            value={values["ui.language"]}
+            onChange={(event) =>
+              void setValue(
+                "ui.language",
+                event.target.value as "auto" | "en" | "ru",
+              )
+            }
+          >
+            <option value="auto">{t("settings.languageAuto")}</option>
+            <option value="en">{t("settings.languageEnglish")}</option>
+            <option value="ru">{t("settings.languageRussian")}</option>
+          </select>
+        </label>
+        <div className="setting-note">{t("settings.languageNote")}</div>
         <div className="setting-row column">
-          <span>Theme</span>
-          <div className="theme-picker" role="radiogroup" aria-label="Theme">
+          <span>{t("settings.theme")}</span>
+          <div className="theme-picker" role="radiogroup" aria-label={t("settings.theme")}>
             {THEME_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -104,26 +127,26 @@ function SettingsModal() {
               >
                 <span className={`theme-swatch ${option.id}`} aria-hidden="true" />
                 <span className="theme-option-text">
-                  <strong>{option.label}</strong>
-                  <span>{option.hint}</span>
+                  <strong>{t(option.labelKey)}</strong>
+                  <span>{t(option.hintKey)}</span>
                 </span>
               </button>
             ))}
           </div>
         </div>
         <label className="setting-row column">
-          <span>Interface font family</span>
+          <span>{t("settings.uiFontFamily")}</span>
           <input
             key={`ui-font-${values["ui.fontFamily"]}`}
             type="text"
             list="anvil-font-families"
             defaultValue={values["ui.fontFamily"]}
-            placeholder="System default"
+            placeholder={t("settings.systemDefault")}
             onBlur={(event) => saveFontFamily("ui.fontFamily", event.target.value)}
           />
         </label>
         <label className="setting-row">
-          <span>Interface font size</span>
+          <span>{t("settings.uiFontSize")}</span>
           <input
             type="number"
             min={11}
@@ -136,18 +159,18 @@ function SettingsModal() {
           />
         </label>
         <label className="setting-row column">
-          <span>Editor font family</span>
+          <span>{t("settings.editorFontFamily")}</span>
           <input
             key={`editor-font-${values["editor.fontFamily"]}`}
             type="text"
             list="anvil-font-families"
             defaultValue={values["editor.fontFamily"]}
-            placeholder="Default monospace stack"
+            placeholder={t("settings.defaultMono")}
             onBlur={(event) => saveFontFamily("editor.fontFamily", event.target.value)}
           />
         </label>
         <label className="setting-row">
-          <span>Editor line height</span>
+          <span>{t("settings.editorLineHeight")}</span>
           <select
             value={values["editor.lineHeight"]}
             onChange={(event) =>
@@ -157,13 +180,13 @@ function SettingsModal() {
               )
             }
           >
-            <option value="compact">Compact</option>
-            <option value="normal">Normal</option>
-            <option value="relaxed">Relaxed</option>
+            <option value="compact">{t("settings.lineHeightCompact")}</option>
+            <option value="normal">{t("settings.lineHeightNormal")}</option>
+            <option value="relaxed">{t("settings.lineHeightRelaxed")}</option>
           </select>
         </label>
         <label className="setting-row checkbox">
-          <span>Editor font ligatures</span>
+          <span>{t("settings.fontLigatures")}</span>
           <input
             type="checkbox"
             checked={values["editor.fontLigatures"]}
@@ -173,25 +196,20 @@ function SettingsModal() {
         <datalist id="anvil-font-families">
           {fonts.map((font) => (
             <option key={font.family} value={font.family}>
-              {font.monospace ? `${font.family} (monospace)` : font.family}
+              {font.monospace ? `${font.family} (${t("settings.monospace")})` : font.family}
             </option>
           ))}
         </datalist>
-        <div className="setting-note">
-          Themes and fonts apply immediately and persist in settings.json. Font family names are
-          validated as data; an unknown family falls back to the built-in stack.
-        </div>
+        <div className="setting-note">{t("settings.appearanceNote")}</div>
         {fonts.length === 0 ? (
-          <div className="setting-note">
-            The installed font list is unavailable; type a family name to use it.
-          </div>
+          <div className="setting-note">{t("settings.fontListUnavailable")}</div>
         ) : null}
       </section>
 
       <section className="settings-section">
-        <h3>Editor</h3>
+        <h3>{t("settings.editor")}</h3>
         <label className="setting-row">
-          <span>Font size</span>
+          <span>{t("settings.fontSize")}</span>
           <input
             type="number"
             min={8}
@@ -204,7 +222,7 @@ function SettingsModal() {
           />
         </label>
         <label className="setting-row">
-          <span>Tab size</span>
+          <span>{t("settings.tabSize")}</span>
           <input
             type="number"
             min={1}
@@ -217,7 +235,7 @@ function SettingsModal() {
           />
         </label>
         <label className="setting-row checkbox">
-          <span>Word wrap</span>
+          <span>{t("settings.wordWrap")}</span>
           <input
             type="checkbox"
             checked={values["editor.wordWrap"]}
@@ -225,7 +243,7 @@ function SettingsModal() {
           />
         </label>
         <label className="setting-row checkbox">
-          <span>Minimap</span>
+          <span>{t("settings.minimap")}</span>
           <input
             type="checkbox"
             checked={values["editor.minimap"]}
@@ -233,23 +251,20 @@ function SettingsModal() {
           />
         </label>
         <label className="setting-row checkbox">
-          <span>Hide .git in Explorer</span>
+          <span>{t("settings.hideGit")}</span>
           <input
             type="checkbox"
             checked={values["explorer.hideGit"]}
             onChange={(event) => void setValue("explorer.hideGit", event.target.checked)}
           />
         </label>
-        <div className="setting-note">
-          Format-on-save and other language features arrive in Phase 2. Formatting is never
-          applied silently in this release.
-        </div>
+        <div className="setting-note">{t("settings.formatNote")}</div>
       </section>
 
       <section className="settings-section">
-        <h3>C/C++ language server</h3>
+        <h3>{t("settings.languageServer")}</h3>
         <label className="setting-row column">
-          <span>clangd path</span>
+          <span>{t("settings.clangdPath")}</span>
           <input
             key={values["lsp.clangdPath"]}
             type="text"
@@ -264,7 +279,7 @@ function SettingsModal() {
           />
         </label>
         <label className="setting-row column">
-          <span>Extra clangd arguments (one per line)</span>
+          <span>{t("settings.clangdArgs")}</span>
           <textarea
             key={values["lsp.clangdArgs"].join("\n")}
             defaultValue={values["lsp.clangdArgs"].join("\n")}
@@ -282,55 +297,51 @@ function SettingsModal() {
           />
         </label>
         <label className="setting-row checkbox">
-          <span>Read project .clangd configuration</span>
+          <span>{t("settings.projectConfig")}</span>
           <input
             type="checkbox"
             checked={values["lsp.enableProjectConfig"]}
             onChange={(event) => void setValue("lsp.enableProjectConfig", event.target.checked)}
           />
         </label>
-        <div className="setting-note">
-          Project configuration is disabled by default because .clangd is untrusted project
-          input. Compile commands are always treated as data, never executed.
-        </div>
+        <div className="setting-note">{t("settings.projectConfigNote")}</div>
         <div className="settings-inline">
           <button
             type="button"
             className="secondary-button"
             onClick={() => void restartLanguageServer()}
           >
-            Restart language server
+            {t("settings.restartLsp")}
           </button>
         </div>
       </section>
 
       <section className="settings-section">
-        <h3>Security</h3>
+        <h3>{t("settings.security")}</h3>
         <div className="settings-security">
           <ShieldIcon size={20} />
           <div>
             <strong>
               {security?.sandbox.available ?? info?.security.sandbox.available
-                ? "Sandbox available"
-                : "Sandbox unavailable"}
+                ? t("settings.sandboxAvailable")
+                : t("settings.sandboxUnavailable")}
             </strong>
             <p>
-              {security?.sandbox.reason ?? info?.security.sandbox.reason ?? "Probing bubblewrap…"}
+              {security?.sandbox.reason ??
+                info?.security.sandbox.reason ??
+                t("settings.probingBubblewrap")}
             </p>
           </div>
         </div>
-        <div className="setting-note">
-          Unsandboxed language servers are available only in explicit developer builds. There is
-          no user-facing switch in release builds.
-        </div>
+        <div className="setting-note">{t("settings.unsandboxedNote")}</div>
         <dl className="settings-paths">
           <div>
-            <dt>Settings file</dt>
-            <dd>{info ? `${info.configDir}/settings.json` : "unknown"}</dd>
+            <dt>{t("settings.settingsFile")}</dt>
+            <dd>{info ? `${info.configDir}/settings.json` : t("common.unknown")}</dd>
           </div>
           <div>
-            <dt>Security log</dt>
-            <dd>{security?.logs.security ?? "unknown"}</dd>
+            <dt>{t("settings.securityLog")}</dt>
+            <dd>{security?.logs.security ?? t("common.unknown")}</dd>
           </div>
         </dl>
       </section>
@@ -339,6 +350,7 @@ function SettingsModal() {
 }
 
 function AboutModal() {
+  const { t } = useI18n();
   const open = useUiStore((state) => state.aboutOpen);
   const setOpen = useUiStore((state) => state.setAboutOpen);
   const info = useCoreStore((state) => state.info);
@@ -346,7 +358,7 @@ function AboutModal() {
   if (!open) return null;
   return (
     <Modal
-      title="About Anvil"
+      title={t("about.title")}
       onClose={() => setOpen(false)}
       footer={
         <>
@@ -358,10 +370,10 @@ function AboutModal() {
               useUiStore.getState().setSecurityOpen(true);
             }}
           >
-            Security Status
+            {t("command.securityStatus")}
           </button>
           <button type="button" className="primary-button" onClick={() => setOpen(false)}>
-            Close
+            {t("common.close")}
           </button>
         </>
       }
@@ -370,55 +382,51 @@ function AboutModal() {
         <div className="welcome-logo small">
           Anvil<span>IDE</span>
         </div>
-        <p>Forge C++ at full speed.</p>
-        <span className="version-chip">v{info?.version ?? "0.0.1"} · experimental</span>
+        <p>{t("editor.tagline")}</p>
+        <span className="version-chip">v{info?.version ?? "0.0.1"} · {t("editor.experimental")}</span>
       </div>
-      <p className="about-text">
-        A C++-first IDE with a native C++ core, clangd-powered intelligence, and a Monaco
-        frontend inside a system WebView. No bundled Chromium, no Electron, no telemetry.
-      </p>
+      <p className="about-text">{t("about.description")}</p>
       <dl className="about-grid">
         <div>
-          <dt>Product</dt>
-          <dd>{info?.product ?? "Anvil IDE"}</dd>
+          <dt>{t("about.product")}</dt>
+          <dd>{info?.product ?? t("app.product")}</dd>
         </div>
         <div>
-          <dt>Core</dt>
+          <dt>{t("about.core")}</dt>
           <dd>{info ? `${info.core} ${info.version} (API ${info.apiVersion})` : "anvil-core"}</dd>
         </div>
         <div>
-          <dt>Platform</dt>
+          <dt>{t("about.platform")}</dt>
           <dd>{info?.platform ?? "linux"}</dd>
         </div>
         <div>
-          <dt>License</dt>
+          <dt>{t("about.license")}</dt>
           <dd>Apache-2.0</dd>
         </div>
         <div>
-          <dt>Config</dt>
+          <dt>{t("about.config")}</dt>
           <dd>{info?.configDir ?? "~/.config/anvil"}</dd>
         </div>
         <div>
-          <dt>Cache</dt>
+          <dt>{t("about.cache")}</dt>
           <dd>{info?.cacheDir ?? "~/.cache/anvil"}</dd>
         </div>
         <div>
-          <dt>Security log</dt>
-          <dd>{security?.logs.security ?? "not loaded"}</dd>
+          <dt>{t("settings.securityLog")}</dt>
+          <dd>{security?.logs.security ?? t("common.notLoaded")}</dd>
         </div>
         <div>
-          <dt>Build</dt>
-          <dd>{info?.devMode ? "development" : "release"}</dd>
+          <dt>{t("about.build")}</dt>
+          <dd>{info?.devMode ? t("about.buildDevelopment") : t("about.buildRelease")}</dd>
         </div>
       </dl>
-      <p className="about-fine">
-        C++20 core · WebKitGTK shell · Monaco Editor · clangd · bubblewrap + seccomp
-      </p>
+      <p className="about-fine">{t("about.fine")}</p>
     </Modal>
   );
 }
 
 function SecurityModal() {
+  const { t } = useI18n();
   const open = useUiStore((state) => state.securityOpen);
   const setOpen = useUiStore((state) => state.setSecurityOpen);
   const info = useCoreStore((state) => state.info);
@@ -427,11 +435,11 @@ function SecurityModal() {
   const sandbox = security?.sandbox ?? info?.security.sandbox;
   return (
     <Modal
-      title="Security Status"
+      title={t("security.title")}
       onClose={() => setOpen(false)}
       footer={
         <button type="button" className="primary-button" onClick={() => setOpen(false)}>
-          Close
+          {t("common.close")}
         </button>
       }
       wide
@@ -440,7 +448,7 @@ function SecurityModal() {
         <div className="security-banner ok">
           <ShieldIcon size={20} />
           <div>
-            <strong>Language servers are isolated</strong>
+            <strong>{t("security.isolated")}</strong>
             <p>{sandbox.reason}</p>
           </div>
         </div>
@@ -448,120 +456,111 @@ function SecurityModal() {
         <div className="security-banner warning">
           <WarningIcon size={20} />
           <div>
-            <strong>Sandbox is unavailable on this system</strong>
-            <p>{sandbox?.reason ?? "bubblewrap could not be verified."}</p>
-            <p>
-              Language-server startup is blocked unless an explicit development override is
-              active. Release builds never fall back silently.
-            </p>
+            <strong>{t("security.unavailable")}</strong>
+            <p>{sandbox?.reason ?? t("security.bwrapUnverified")}</p>
+            <p>{t("security.unavailableNote")}</p>
           </div>
         </div>
       )}
       <dl className="about-grid">
         <div>
           <dt>bubblewrap</dt>
-          <dd>{sandbox?.bwrap || "not found"}</dd>
+          <dd>{sandbox?.bwrap || t("security.notFound")}</dd>
         </div>
         <div>
-          <dt>Network namespace</dt>
-          <dd>{sandbox?.networkNamespace ? "isolated" : "seccomp network deny"}</dd>
+          <dt>{t("security.networkNamespace")}</dt>
+          <dd>{sandbox?.networkNamespace ? t("security.isolatedValue") : t("security.seccompDeny")}</dd>
         </div>
         <div>
-          <dt>Workspace root</dt>
-          <dd>{security?.workspace.root || info?.workspace.root || "none"}</dd>
+          <dt>{t("security.workspaceRoot")}</dt>
+          <dd>{security?.workspace.root || info?.workspace.root || t("common.none")}</dd>
         </div>
         <div>
-          <dt>Audit log</dt>
-          <dd>{security?.logs.security ?? "not loaded"}</dd>
+          <dt>{t("security.auditLog")}</dt>
+          <dd>{security?.logs.security ?? t("common.notLoaded")}</dd>
         </div>
       </dl>
       <ul className="security-list">
         <li>
-          <CheckIcon size={13} /> Filesystem access is scoped to the open workspace root.
+          <CheckIcon size={13} /> {t("security.listFs")}
         </li>
         <li>
-          <CheckIcon size={13} /> Processes are spawned with argv arrays; Anvil never invokes a
-          shell.
+          <CheckIcon size={13} /> {t("security.listArgv")}
         </li>
         <li>
-          <CheckIcon size={13} /> Language servers run read-only against the workspace with a
-          private cache.
+          <CheckIcon size={13} /> {t("security.listReadonly")}
         </li>
         <li>
-          <CheckIcon size={13} /> No telemetry, no remote content, no AI provider enabled.
+          <CheckIcon size={13} /> {t("security.listTelemetry")}
         </li>
         <li>
-          <CheckIcon size={13} /> Secrets are never written to settings.json or logs.
+          <CheckIcon size={13} /> {t("security.listSecrets")}
         </li>
       </ul>
-      <p className="setting-note">
-        Residual risks: a compromised WebKit or clangd binary could affect this session; project
-        build scripts are not executed in 0.0.1. Read the threat model in the installed
-        documentation for details.
-      </p>
+      <p className="setting-note">{t("security.residual")}</p>
     </Modal>
   );
 }
 
 function RunConfigModal() {
+  const { t } = useI18n();
   const open = useUiStore((state) => state.runConfigOpen);
   const setOpen = useUiStore((state) => state.setRunConfigOpen);
   if (!open) return null;
   return (
     <Modal
-      title="Run Configuration"
+      title={t("runConfig.title")}
       onClose={() => setOpen(false)}
       footer={
         <>
           <button type="button" className="secondary-button" onClick={() => setOpen(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
-          <button type="button" className="primary-button" disabled title="Phase 3">
-            Start
+          <button
+            type="button"
+            className="primary-button"
+            disabled
+            title={t("common.phase3")}
+          >
+            {t("common.start")}
           </button>
         </>
       }
       wide
     >
       <div className="roadmap-banner">
-        <strong>Build and run integration arrives in Phase 3.</strong>
-        <p>
-          This preview shows the planned configuration surface. Anvil does not execute project
-          build scripts in 0.0.1, so the Start button is disabled.
-        </p>
+        <strong>{t("runConfig.phase3Title")}</strong>
+        <p>{t("runConfig.phase3Body")}</p>
       </div>
       <div className="form-grid">
         <label>
-          <span>Target</span>
-          <input disabled placeholder="Not configured" />
+          <span>{t("runConfig.target")}</span>
+          <input disabled placeholder={t("common.notConfigured")} />
         </label>
         <label>
-          <span>Configuration</span>
-          <input disabled placeholder="Not configured" />
+          <span>{t("runConfig.configuration")}</span>
+          <input disabled placeholder={t("common.notConfigured")} />
         </label>
         <label>
-          <span>Working directory</span>
-          <input disabled placeholder="Not configured" />
+          <span>{t("runConfig.workingDirectory")}</span>
+          <input disabled placeholder={t("common.notConfigured")} />
         </label>
         <label>
-          <span>Program arguments</span>
-          <input disabled placeholder="Not configured" />
+          <span>{t("runConfig.arguments")}</span>
+          <input disabled placeholder={t("common.notConfigured")} />
         </label>
         <label className="full">
-          <span>Environment</span>
-          <textarea disabled rows={2} placeholder="Not configured" />
+          <span>{t("runConfig.environment")}</span>
+          <textarea disabled rows={2} placeholder={t("common.notConfigured")} />
         </label>
       </div>
-      <p className="setting-note">
-        When enabled, builds will run only after an explicit confirmation that names the exact
-        command, inside bubblewrap, with network access denied and write access limited to the
-        build directory.
-      </p>
+      <p className="setting-note">{t("runConfig.note")}</p>
     </Modal>
   );
 }
 
 function ReferencesModal() {
+  const { t } = useI18n();
   const references = useUiStore((state) => state.references);
   const setReferences = useUiStore((state) => state.setReferences);
   if (!references) return null;
@@ -573,11 +572,11 @@ function ReferencesModal() {
   }
   return (
     <Modal
-      title={`References (${references.locations.length})`}
+      title={t("references.title", { count: references.locations.length })}
       onClose={() => setReferences(null)}
       footer={
         <button type="button" className="primary-button" onClick={() => setReferences(null)}>
-          Close
+          {t("common.close")}
         </button>
       }
       wide
@@ -601,7 +600,7 @@ function ReferencesModal() {
               <span className="reference-loc">
                 {location.range.start.line + 1}:{location.range.start.character + 1}
               </span>
-              <span className="reference-hint">Open location</span>
+              <span className="reference-hint">{t("common.openLocation")}</span>
             </button>
           ))}
         </div>
@@ -611,6 +610,7 @@ function ReferencesModal() {
 }
 
 function PromptDialog() {
+  const { t } = useI18n();
   const prompt = useUiStore((state) => state.prompt);
   const close = useUiStore((state) => state.closePrompt);
   const [value, setValue] = useState("");
@@ -627,11 +627,11 @@ function PromptDialog() {
   const submit = async () => {
     const trimmed = value.trim();
     if (!trimmed) {
-      setError("A name is required.");
+      setError(t("prompt.nameRequired"));
       return;
     }
     if (!isValidEntryName(trimmed)) {
-      setError("Use a name without slashes, control characters, '.' or '..'.");
+      setError(t("prompt.invalidName"));
       return;
     }
     setBusy(true);
@@ -639,7 +639,9 @@ function PromptDialog() {
       await prompt.onSubmit(trimmed);
       close();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "The operation failed.");
+      setError(
+        submitError instanceof Error ? submitError.message : t("prompt.operationFailed"),
+      );
       setBusy(false);
     }
   };
@@ -650,10 +652,10 @@ function PromptDialog() {
       footer={
         <>
           <button type="button" className="secondary-button" onClick={close} disabled={busy}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button type="button" className="primary-button" onClick={() => void submit()} disabled={busy}>
-            {prompt.confirmLabel ?? "OK"}
+            {prompt.confirmLabel ?? t("common.ok")}
           </button>
         </>
       }
@@ -684,6 +686,7 @@ function PromptDialog() {
 }
 
 function ConfirmDialog() {
+  const { t } = useI18n();
   const confirm = useUiStore((state) => state.confirm);
   const close = useUiStore((state) => state.closeConfirm);
   const [busy, setBusy] = useState(false);
@@ -702,7 +705,7 @@ function ConfirmDialog() {
             onClick={close}
             disabled={busy}
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -714,7 +717,7 @@ function ConfirmDialog() {
                 .catch((error: unknown) => {
                   useUiStore
                     .getState()
-                    .toast("error", error instanceof Error ? error.message : "Operation failed");
+                    .toast("error", error instanceof Error ? error.message : t("confirm.operationFailed"));
                 })
                 .finally(() => {
                   setBusy(false);
@@ -722,7 +725,7 @@ function ConfirmDialog() {
                 });
             }}
           >
-            {confirm.confirmLabel ?? "Confirm"}
+            {confirm.confirmLabel ?? t("common.confirm")}
           </button>
         </>
       }
@@ -733,6 +736,7 @@ function ConfirmDialog() {
 }
 
 function CloseConfirmModal() {
+  const { t } = useI18n();
   const open = useUiStore((state) => state.closeConfirmOpen);
   const setOpen = useUiStore((state) => state.setCloseConfirmOpen);
   const tabs = useEditorStore((state) => state.tabs);
@@ -740,19 +744,19 @@ function CloseConfirmModal() {
   if (!open) return null;
   return (
     <Modal
-      title="Unsaved changes"
+      title={t("dialog.unsavedTitle")}
       onClose={() => setOpen(false)}
       footer={
         <>
           <button type="button" className="secondary-button" onClick={() => setOpen(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="button"
             className="danger-button"
             onClick={() => void closeDiscarding()}
           >
-            Discard and close
+            {t("dialog.discardAndClose")}
           </button>
           <button
             type="button"
@@ -763,16 +767,13 @@ function CloseConfirmModal() {
               });
             }}
           >
-            Save all and close
+            {t("dialog.saveAllAndClose")}
           </button>
         </>
       }
       wide
     >
-      <p className="confirm-message">
-        Anvil is about to close with unsaved changes in {dirty.length} editor
-        {dirty.length === 1 ? "" : "s"}.
-      </p>
+      <p className="confirm-message">{tCount("dialog.unsavedCount", dirty.length)}</p>
       <ul className="dirty-list">
         {dirty.map((tab) => (
           <li key={tab.path}>{tab.path}</li>

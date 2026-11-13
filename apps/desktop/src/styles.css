@@ -1205,18 +1205,22 @@ kbd {
 
 .panel-tabs {
   display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
-  flex: 0 0 31px;
-  height: 31px;
+  flex: 0 0 auto;
+  min-height: 31px;
+  height: auto;
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .panel-tab {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 5px;
+  min-height: 31px;
   padding: 0 9px;
   color: var(--text-muted);
   font-size: calc(var(--ui-font-size) * 10 / 12);
@@ -1461,7 +1465,9 @@ kbd {
   padding: 0 8px;
   background: var(--status-bg);
   color: var(--status-text);
-  font-size: calc(var(--ui-font-size) * 10 / 12);
+  /* Chrome text is capped so the status bar stays usable at the largest UI
+     font size while still scaling up from the 10 px default. */
+  font-size: min(calc(var(--ui-font-size) * 10 / 12), 12px);
   white-space: nowrap;
   overflow: hidden;
   user-select: none;

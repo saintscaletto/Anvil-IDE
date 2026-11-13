@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { t } from "../i18n";
 
 interface Props {
   children: ReactNode;
@@ -27,10 +28,10 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="welcome-logo">
             Anvil<span>IDE</span>
           </div>
-          <h1>The editor UI crashed</h1>
+          <h1>{t("errorBoundary.crashed")}</h1>
           <p>{this.state.error.message}</p>
           <button type="button" className="primary-button" onClick={() => window.location.reload()}>
-            Reload UI
+            {t("errorBoundary.reload")}
           </button>
         </div>
       );

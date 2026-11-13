@@ -1,24 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { commands, type Command } from "../commands";
 import { openRunConfig } from "../actions";
+import type { MessageKey } from "../i18n";
+import { useI18n } from "../i18n";
 import { useWorkspaceStore } from "../stores/workspace";
 import { BugIcon, PlayIcon } from "../components/Icons";
 
 interface MenuDefinition {
-  label: string;
+  id: string;
+  labelKey: MessageKey;
   categories: string[];
 }
 
 const menus: MenuDefinition[] = [
-  { label: "File", categories: ["File"] },
-  { label: "Edit", categories: ["Edit"] },
-  { label: "View", categories: ["View", "Explorer"] },
-  { label: "Go", categories: ["Go"] },
-  { label: "Run", categories: ["Run"] },
-  { label: "Help", categories: ["Anvil"] },
+  { id: "file", labelKey: "menu.file", categories: ["File"] },
+  { id: "edit", labelKey: "menu.edit", categories: ["Edit"] },
+  { id: "view", labelKey: "menu.view", categories: ["View", "Explorer"] },
+  { id: "go", labelKey: "menu.go", categories: ["Go"] },
+  { id: "run", labelKey: "menu.run", categories: ["Run"] },
+  { id: "help", labelKey: "menu.help", categories: ["Anvil"] },
 ];
 
 export function TitleBar() {
+  const { t } = useI18n();
   const name = useWorkspaceStore((state) => state.name);
   const root = useWorkspaceStore((state) => state.root);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -47,27 +51,27 @@ export function TitleBar() {
 
   return (
     <header className="titlebar" ref={containerRef}>
-      <div className="titlebar-brand" aria-label="Anvil IDE">
+      <div className="titlebar-brand" aria-label={t("app.product")}>
         <span className="brand-mark">A</span>
         <span className="brand-name">Anvil</span>
       </div>
-      <div className="titlebar-project" title={root ?? "No folder open"}>
-        {name || "No Folder"}
+      <div className="titlebar-project" title={root ?? t("titlebar.noFolderOpen")}>
+        {name || t("titlebar.noFolder")}
       </div>
-      <nav className="titlebar-menu" aria-label="Application menu">
+      <nav className="titlebar-menu" aria-label={t("titlebar.applicationMenu")}>
         {menus.map((menu) => {
           const items = commands.filter((command) => menu.categories.includes(command.category));
-          const isOpen = openMenu === menu.label;
+          const isOpen = openMenu === menu.id;
           return (
-            <div className="menu-root" key={menu.label}>
+            <div className="menu-root" key={menu.id}>
               <button
                 type="button"
                 className={`menu-button${isOpen ? " open" : ""}`}
                 aria-haspopup="menu"
                 aria-expanded={isOpen}
-                onClick={() => setOpenMenu(isOpen ? null : menu.label)}
+                onClick={() => setOpenMenu(isOpen ? null : menu.id)}
               >
-                {menu.label}
+                {t(menu.labelKey)}
               </button>
               {isOpen ? (
                 <div className="menu-dropdown" role="menu">
@@ -79,7 +83,7 @@ export function TitleBar() {
                       key={command.id}
                       onClick={() => runCommand(command)}
                     >
-                      <span className="menu-item-title">{command.title}</span>
+                      <span className="menu-item-title">{t(command.titleKey)}</span>
                       {command.keybinding ? <kbd>{command.keybinding}</kbd> : null}
                     </button>
                   ))}
@@ -94,20 +98,20 @@ export function TitleBar() {
         <button
           type="button"
           className="run-button"
-          title="Run configuration (build integration arrives in Phase 3)"
+          title={t("titlebar.runTitle")}
           onClick={openRunConfig}
         >
           <PlayIcon size={12} />
-          Run
+          {t("common.run")}
         </button>
         <button
           type="button"
           className="run-button"
-          title="Debug (DAP integration arrives in Phase 3)"
+          title={t("titlebar.debugTitle")}
           onClick={openRunConfig}
         >
           <BugIcon size={12} />
-          Debug
+          {t("common.debug")}
         </button>
       </div>
     </header>

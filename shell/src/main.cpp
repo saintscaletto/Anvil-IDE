@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <deque>
@@ -41,7 +42,29 @@ struct ShellOptions {
     int e2e_hover_character = 0;
     std::string ui_dir;
     std::string core_path;
+    std::string lang;
 };
+
+// The UI resolves "auto" from this value. LC_ALL wins over LC_MESSAGES and
+// LANG, matching POSIX precedence. ANVIL_LANG and --lang exist for tests and
+// deterministic screenshots.
+std::string system_locale(const ShellOptions& options) {
+    std::string value = options.lang;
+    for (const char* name : {"ANVIL_LANG", "LC_ALL", "LC_MESSAGES", "LANG"}) {
+        if (!value.empty()) break;
+        const char* env = std::getenv(name);
+        if (env != nullptr && *env != '\0') value = env;
+    }
+    if (value.empty()) return "en";
+    std::string normalized;
+    normalized.reserve(std::min<std::size_t>(value.size(), 64));
+    for (const unsigned char c : value) {
+        if (normalized.size() >= 64) break;
+        if (c < 0x20 || c == 0x7f) continue;
+        normalized.push_back(static_cast<char>(std::tolower(c)));
+    }
+    return normalized.empty() ? "en" : normalized;
+}
 
 std::filesystem::path shell_config_dir() {
     if (const char* env = std::getenv("ANVIL_CONFIG_DIR"); env != nullptr && *env != '\0') {
@@ -905,7 +928,8 @@ void on_activate(GtkApplication* application, gpointer user_data) {
               {"devMode", app->options.dev_mode},
               {"initialWorkspace", app->options.workspace},
               {"e2eFile", app->options.e2e_file},
-              {"theme", initial_ui_theme()}};
+              {"theme", initial_ui_theme()},
+              {"locale", system_locale(app->options)}};
     std::string bootstrap =
         "window.__ANVIL_BOOT__ = " + boot.dump() +
         "; window.__ANVIL_NATIVE__ = true;";
@@ -989,6 +1013,7 @@ int main(int argc, char** argv) {
                         "  --workspace PATH        initial workspace\n"
                         "  --ui-dir PATH           override the bundled UI directory\n"
                         "  --core PATH             override the anvil-core path\n"
+                        "  --lang LOCALE           override the UI locale (also ANVIL_LANG)\n"
                         "  --dev                   enable developer extras and debug logging\n");
             return 0;
         }
@@ -1038,6 +1063,10 @@ int main(int argc, char** argv) {
         }
         if (argument == "--core" && i + 1 < argc) {
             options.core_path = argv[++i];
+            continue;
+        }
+        if (argument == "--lang" && i + 1 < argc) {
+            options.lang = argv[++i];
             continue;
         }
         if (argument.rfind("--", 0) == 0) {

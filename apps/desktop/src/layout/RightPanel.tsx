@@ -15,15 +15,18 @@ import { useEditorStore } from "../stores/editor";
 import { problemCounts, useLspStore } from "../stores/lsp";
 import { useUiStore, type PanelTab } from "../stores/ui";
 import { basename } from "../lib/paths";
+import type { MessageKey } from "../i18n";
+import { useI18n } from "../i18n";
 
-const tabs: Array<{ id: PanelTab; label: string; icon: typeof ProblemsIcon }> = [
-  { id: "problems", label: "Problems", icon: ProblemsIcon },
-  { id: "output", label: "Output", icon: OutputIcon },
-  { id: "terminal", label: "Terminal", icon: TerminalIcon },
-  { id: "debug", label: "Debug", icon: BugIcon },
+const tabs: Array<{ id: PanelTab; labelKey: MessageKey; icon: typeof ProblemsIcon }> = [
+  { id: "problems", labelKey: "panel.problems", icon: ProblemsIcon },
+  { id: "output", labelKey: "panel.output", icon: OutputIcon },
+  { id: "terminal", labelKey: "panel.terminal", icon: TerminalIcon },
+  { id: "debug", labelKey: "panel.debug", icon: BugIcon },
 ];
 
 export function RightPanel() {
+  const { locale, t } = useI18n();
   const activeTab = useUiStore((state) => state.panelTab);
   const diagnostics = useLspStore((state) => state.diagnostics);
   const logs = useCoreStore((state) => state.logs);
@@ -46,7 +49,7 @@ export function RightPanel() {
   }, [activeTab, logs]);
 
   return (
-    <aside className="panel" aria-label="Bottom panel">
+    <aside className="panel" aria-label={t("panel.label")}>
       <div className="panel-tabs" role="tablist">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -60,7 +63,7 @@ export function RightPanel() {
               onClick={() => setPanelTab(tab.id)}
             >
               <Icon size={13} />
-              {tab.label}
+              {t(tab.labelKey)}
               {tab.id === "problems" && counts.errors + counts.warnings > 0 ? (
                 <span className="panel-badge">{counts.errors + counts.warnings}</span>
               ) : null}
@@ -71,8 +74,8 @@ export function RightPanel() {
         <button
           type="button"
           className="icon-button panel-close"
-          title="Hide panel"
-          aria-label="Hide panel"
+          title={t("panel.hide")}
+          aria-label={t("panel.hide")}
           onClick={togglePanel}
         >
           <CloseIcon size={12} />
@@ -84,11 +87,8 @@ export function RightPanel() {
             {problems.length === 0 ? (
               <div className="panel-empty">
                 <CheckIcon size={22} />
-                <p>No problems have been detected in the workspace.</p>
-                <span className="muted">
-                  C++ diagnostics arrive from clangd. Check the status bar for the language
-                  server state.
-                </span>
+                <p>{t("panel.noProblemsTitle")}</p>
+                <span className="muted">{t("panel.noProblemsNote")}</span>
               </div>
             ) : (
               problems.map(([path, list]) => (
@@ -136,27 +136,30 @@ export function RightPanel() {
         {activeTab === "output" ? (
           <div className="output-panel" ref={outputRef}>
             <div className="output-toolbar">
-              <span>Anvil output channel</span>
+              <span>{t("panel.outputChannel")}</span>
               <button type="button" className="text-button" onClick={clearOutput}>
-                Clear
+                {t("common.clear")}
               </button>
             </div>
             {logs.length === 0 ? (
               <div className="panel-empty">
                 <OutputIcon size={22} />
-                <p>No output yet.</p>
-                <span className="muted">Core and language-server logs appear here.</span>
+                <p>{t("panel.noOutput")}</p>
+                <span className="muted">{t("panel.outputNote")}</span>
               </div>
             ) : (
               <div className="output-lines" aria-live="polite">
                 {logs.map((line) => (
                   <div className="output-line" key={line.id}>
                     <span className="output-time">
-                      {new Date(line.time).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      })}
+                      {new Date(line.time).toLocaleTimeString(
+                        locale === "ru" ? "ru-RU" : "en-US",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        },
+                      )}
                     </span>
                     <span className={`output-source ${line.source}`}>{line.source}</span>
                     <span className="output-text">{line.text}</span>
@@ -169,21 +172,15 @@ export function RightPanel() {
         {activeTab === "terminal" ? (
           <div className="panel-empty wide">
             <TerminalIcon size={24} />
-            <p>Integrated terminal is scheduled for Phase 3.</p>
-            <span className="muted">
-              It will run an isolated shell with a native PTY. Build output and run
-              configurations arrive in the same phase.
-            </span>
+            <p>{t("panel.terminalPhase3")}</p>
+            <span className="muted">{t("panel.terminalNote")}</span>
           </div>
         ) : null}
         {activeTab === "debug" ? (
           <div className="panel-empty wide">
             <BugIcon size={24} />
-            <p>Debugger integration is scheduled for Phase 3.</p>
-            <span className="muted">
-              DAP will connect to gdb/lldb inside the sandbox, with breakpoints, call
-              stacks, variables, and watch expressions.
-            </span>
+            <p>{t("panel.debugPhase3")}</p>
+            <span className="muted">{t("panel.debugNote")}</span>
           </div>
         ) : null}
       </div>

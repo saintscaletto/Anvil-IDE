@@ -11,6 +11,7 @@ import type {
 } from "../ipc/types";
 import { basename, dirname, isValidEntryName, joinPath } from "../lib/paths";
 import { useUiStore } from "./ui";
+import { t } from "../i18n";
 
 interface WorkspaceState {
   root: string | null;
@@ -45,7 +46,7 @@ let refreshTimer = 0;
 
 function errorText(error: unknown): string {
   if (error instanceof AnvilError || error instanceof Error) return error.message;
-  return "Unexpected filesystem error";
+  return t("error.filesystem");
 }
 
 function removeSubtree(
@@ -128,7 +129,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         loading: { ...current.loading, [path]: false },
       }));
       if (listing.truncated) {
-        useUiStore.getState().toast("warning", `Directory is too large to list fully: ${path || "."}`);
+        useUiStore
+          .getState()
+          .toast("warning", t("explorer.directoryTooLarge", { path: path || "." }));
       }
     } catch (error) {
       set((current) => {
@@ -214,7 +217,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   createEntry: async (directory, name, kind) => {
     if (!isValidEntryName(name)) {
-      useUiStore.getState().toast("error", "Invalid file or folder name");
+      useUiStore.getState().toast("error", t("explorer.invalidName"));
       return null;
     }
     const path = joinPath(directory, name);
@@ -230,7 +233,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   renameEntry: async (path, newName) => {
     if (!isValidEntryName(newName)) {
-      useUiStore.getState().toast("error", "Invalid file or folder name");
+      useUiStore.getState().toast("error", t("explorer.invalidName"));
       return null;
     }
     const parent = dirname(path);

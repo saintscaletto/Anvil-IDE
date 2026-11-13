@@ -3,8 +3,10 @@ import { SearchIcon } from "../components/Icons";
 import { useEditorStore } from "../stores/editor";
 import { useWorkspaceStore } from "../stores/workspace";
 import type { SearchResult } from "../ipc/types";
+import { useI18n } from "../i18n";
 
 export function SearchPanel() {
+  const { t } = useI18n();
   const root = useWorkspaceStore((state) => state.root);
   const searchFiles = useWorkspaceStore((state) => state.searchFiles);
   const [query, setQuery] = useState("");
@@ -43,9 +45,9 @@ export function SearchPanel() {
   if (!root) {
     return (
       <div className="sidebar-panel">
-        <div className="sidebar-header">Search</div>
+        <div className="sidebar-header">{t("search.title")}</div>
         <div className="sidebar-empty">
-          <p>Open a folder to search its files.</p>
+          <p>{t("search.openFolder")}</p>
         </div>
       </div>
     );
@@ -53,14 +55,14 @@ export function SearchPanel() {
 
   return (
     <div className="sidebar-panel">
-      <div className="sidebar-header">Search</div>
+      <div className="sidebar-header">{t("search.title")}</div>
       <div className="search-row">
         <SearchIcon size={14} className="search-input-icon" />
         <input
           type="search"
           value={query}
-          placeholder="Search file names"
-          aria-label="Search file names"
+          placeholder={t("search.placeholder")}
+          aria-label={t("search.inputLabel")}
           autoFocus
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
@@ -71,12 +73,12 @@ export function SearchPanel() {
         />
       </div>
       <div className="search-note">
-        File-name search. Full-text workspace search is scheduled for Phase 2.
+        {t("search.note")}
       </div>
       <div className="search-results" aria-live="polite">
-        {loading ? <div className="tree-empty">Searching…</div> : null}
+        {loading ? <div className="tree-empty">{t("search.searching")}</div> : null}
         {!loading && searched && results.length === 0 ? (
-          <div className="tree-empty">No files match “{query.trim()}”.</div>
+          <div className="tree-empty">{t("search.noMatch", { query: query.trim() })}</div>
         ) : null}
         {results.map((result) => (
           <button

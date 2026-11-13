@@ -19,6 +19,7 @@ import { useSettingsStore } from "../stores/settings";
 import { useUiStore } from "../stores/ui";
 import { useWorkspaceStore } from "../stores/workspace";
 import type { DirEntry } from "../ipc/types";
+import { useI18n } from "../i18n";
 
 interface Row {
   entry: DirEntry;
@@ -32,6 +33,7 @@ interface ContextMenuState {
 }
 
 export function Explorer() {
+  const { t } = useI18n();
   const root = useWorkspaceStore((state) => state.root);
   const entries = useWorkspaceStore((state) => state.entries);
   const expanded = useWorkspaceStore((state) => state.expanded);
@@ -132,9 +134,11 @@ export function Explorer() {
     const ui = useUiStore.getState();
     const directory = entry === null ? "" : entry.isDir ? entry.path : dirname(entry.path);
     ui.showPrompt({
-      title: kind === "file" ? "New File" : "New Folder",
-      label: directory ? `Create in ${directory}/` : "Create in the workspace root",
-      confirmLabel: "Create",
+      title: kind === "file" ? t("dialog.newFileTitle") : t("dialog.newFolderTitle"),
+      label: directory
+        ? t("explorer.createInDirectory", { directory })
+        : t("explorer.createInRoot"),
+      confirmLabel: t("common.create"),
       onSubmit: async (name) => {
         const path = await useWorkspaceStore.getState().createEntry(directory, name, kind);
         if (path && kind === "file") await useEditorStore.getState().openFile(path);
@@ -145,11 +149,11 @@ export function Explorer() {
   if (!root) {
     return (
       <div className="sidebar-panel">
-        <div className="sidebar-header">Explorer</div>
+        <div className="sidebar-header">{t("explorer.title")}</div>
         <div className="sidebar-empty">
-          <p>You have not opened a folder yet.</p>
+          <p>{t("explorer.notOpened")}</p>
           <button type="button" className="primary-button" onClick={() => void openFolderDialog()}>
-            Open Folder
+            {t("command.openFolder")}
           </button>
         </div>
       </div>
@@ -159,13 +163,13 @@ export function Explorer() {
   return (
     <div className="sidebar-panel">
       <div className="sidebar-header">
-        <span>Explorer</span>
+        <span>{t("explorer.title")}</span>
         <div className="sidebar-actions">
           <button
             type="button"
             className="icon-button"
-            title="New File"
-            aria-label="New File"
+            title={t("command.newFile")}
+            aria-label={t("command.newFile")}
             onClick={() => openNewPrompt(null, "file")}
           >
             <NewFileIcon size={14} />
@@ -173,8 +177,8 @@ export function Explorer() {
           <button
             type="button"
             className="icon-button"
-            title="New Folder"
-            aria-label="New Folder"
+            title={t("command.newFolder")}
+            aria-label={t("command.newFolder")}
             onClick={() => openNewPrompt(null, "directory")}
           >
             <NewFolderIcon size={14} />
@@ -182,8 +186,8 @@ export function Explorer() {
           <button
             type="button"
             className="icon-button"
-            title="Refresh Explorer"
-            aria-label="Refresh Explorer"
+            title={t("command.refreshExplorer")}
+            aria-label={t("command.refreshExplorer")}
             onClick={() => void useWorkspaceStore.getState().refreshAll()}
           >
             <RefreshIcon size={14} />
@@ -191,8 +195,8 @@ export function Explorer() {
           <button
             type="button"
             className="icon-button"
-            title="Collapse Folders"
-            aria-label="Collapse Folders"
+            title={t("command.collapseFolders")}
+            aria-label={t("command.collapseFolders")}
             onClick={collapseAll}
           >
             <CollapseIcon size={14} />
@@ -205,13 +209,13 @@ export function Explorer() {
       <div
         className="file-tree"
         role="tree"
-        aria-label="Workspace files"
+        aria-label={t("explorer.title")}
         tabIndex={0}
         ref={treeRef}
         onKeyDown={onKeyDown}
       >
         {rows.length === 0 && !loading[""] ? (
-          <div className="tree-empty">This folder is empty.</div>
+          <div className="tree-empty">{t("explorer.emptyFolder")}</div>
         ) : null}
         {rows.map(({ entry, depth }) => {
           const isOpen = expanded[entry.path] === true;
@@ -257,8 +261,8 @@ export function Explorer() {
                 )}
               </span>
               <span className="tree-name">{entry.name}</span>
-              {entry.isSymlink ? <span className="tree-link" title="Symlink">↗</span> : null}
-              {isLoading ? <span className="tree-loading" aria-label="Loading" /> : null}
+              {entry.isSymlink ? <span className="tree-link" title={t("explorer.symlink")}>↗</span> : null}
+              {isLoading ? <span className="tree-loading" aria-label={t("explorer.loading")} /> : null}
             </div>
           );
         })}
@@ -275,14 +279,14 @@ export function Explorer() {
             role="menuitem"
             onClick={() => openNewPrompt(contextMenu.entry, "file")}
           >
-            <NewFileIcon size={13} /> New File
+            <NewFileIcon size={13} /> {t("command.newFile")}
           </button>
           <button
             type="button"
             role="menuitem"
             onClick={() => openNewPrompt(contextMenu.entry, "directory")}
           >
-            <NewFolderIcon size={13} /> New Folder
+            <NewFolderIcon size={13} /> {t("command.newFolder")}
           </button>
           <div className="menu-separator" />
           <button
@@ -291,10 +295,10 @@ export function Explorer() {
             onClick={() => {
               setContextMenu(null);
               useUiStore.getState().showPrompt({
-                title: "Rename",
-                label: "New name",
+                title: t("dialog.renameTitle"),
+                label: t("dialog.renameLabel"),
                 initialValue: basename(contextMenu.entry.path),
-                confirmLabel: "Rename",
+                confirmLabel: t("common.rename"),
                 onSubmit: async (name) => {
                   const newPath = await useWorkspaceStore
                     .getState()
@@ -306,7 +310,7 @@ export function Explorer() {
               });
             }}
           >
-            <EditIcon size={13} /> Rename
+            <EditIcon size={13} /> {t("common.rename")}
           </button>
           <button
             type="button"
@@ -315,18 +319,18 @@ export function Explorer() {
               setContextMenu(null);
               const current = contextMenu.entry;
               useUiStore.getState().showConfirm({
-                title: "Delete",
-                message: `Delete ${current.name}? This operation cannot be undone.`,
-                confirmLabel: "Delete",
+                title: t("dialog.deleteTitle"),
+                message: t("explorer.deleteMessage", { name: current.name }),
+                confirmLabel: t("common.delete"),
                 danger: true,
                 onConfirm: async () => {
                   const workspace = useWorkspaceStore.getState();
                   const deleted = await workspace.deleteEntry(current.path, false);
                   if (!deleted && current.isDir) {
                     useUiStore.getState().showConfirm({
-                      title: "Delete non-empty folder?",
-                      message: `${current.name} may not be empty. Delete it and everything inside?`,
-                      confirmLabel: "Delete recursively",
+                      title: t("explorer.deleteRecursiveTitle"),
+                      message: t("explorer.deleteRecursiveMessage", { name: current.name }),
+                      confirmLabel: t("explorer.deleteRecursiveConfirm"),
                       danger: true,
                       onConfirm: async () => {
                         await workspace.deleteEntry(current.path, true);
@@ -337,7 +341,7 @@ export function Explorer() {
               });
             }}
           >
-            <TrashIcon size={13} /> Delete
+            <TrashIcon size={13} /> {t("common.delete")}
           </button>
           <button
             type="button"
@@ -350,7 +354,7 @@ export function Explorer() {
               void loadDir(directory, true);
             }}
           >
-            <RefreshIcon size={13} /> Refresh
+            <RefreshIcon size={13} /> {t("common.refresh")}
           </button>
         </div>
       ) : null}

@@ -428,6 +428,11 @@ SettingsSet parse_settings_set(const Json& params) {
             !anvil::is_valid_line_height_mode(out.value.get<std::string>())) {
             throw ApiError(ErrorCode::InvalidParams, "Invalid editor.lineHeight");
         }
+    } else if (out.key == "ui.language") {
+        if (!out.value.is_string() ||
+            !anvil::is_valid_language_preference(out.value.get<std::string>())) {
+            throw ApiError(ErrorCode::InvalidParams, "Invalid ui.language");
+        }
     } else if (out.key == "ui.fontSize") {
         out.value = integer_field(params, "value", 11, 18);
     } else if (out.key == "ui.fontFamily" || out.key == "editor.fontFamily") {

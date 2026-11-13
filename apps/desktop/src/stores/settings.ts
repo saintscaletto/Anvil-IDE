@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { api } from "../ipc/api";
 import type { Settings } from "../ipc/types";
 import { useUiStore } from "./ui";
+import { t } from "../i18n";
 
 export const defaultSettings: Settings = {
   "editor.fontSize": 14,
@@ -20,6 +21,7 @@ export const defaultSettings: Settings = {
   "ui.theme": "auto",
   "ui.fontFamily": "",
   "ui.fontSize": 12,
+  "ui.language": "auto",
 };
 
 interface SettingsState {
@@ -38,7 +40,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     } catch (error) {
       useUiStore
         .getState()
-        .toast("error", error instanceof Error ? error.message : "Could not update settings");
+        .toast("error", error instanceof Error ? error.message : t("settings.updateFailed"));
     }
   },
 }));

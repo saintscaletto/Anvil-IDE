@@ -6,8 +6,10 @@ import { useCoreStore } from "../stores/core";
 import { useEditorStore } from "../stores/editor";
 import { useWorkspaceStore } from "../stores/workspace";
 import { useUiStore } from "../stores/ui";
+import { useI18n } from "../i18n";
 
 export function EditorArea() {
+  const { t } = useI18n();
   const tabs = useEditorStore((state) => state.tabs);
   const activePath = useEditorStore((state) => state.activePath);
   const activeTab = tabs.find((tab) => tab.path === activePath);
@@ -17,7 +19,7 @@ export function EditorArea() {
 
   return (
     <main className="editor-area">
-      <div className="tab-bar" role="tablist" aria-label="Open editors">
+      <div className="tab-bar" role="tablist" aria-label={t("editor.tabsLabel")}>
         {tabs.map((tab) => (
           <div
             key={tab.path}
@@ -41,11 +43,11 @@ export function EditorArea() {
               {tab.language === "cpp" ? "C++" : <FilesIcon size={12} />}
             </span>
             <span className="tab-name">{tab.name}</span>
-            {tab.dirty ? <span className="tab-dirty" aria-label="Unsaved changes">●</span> : null}
+            {tab.dirty ? <span className="tab-dirty" aria-label={t("editor.unsavedChanges")}>●</span> : null}
             <button
               type="button"
               className="tab-close"
-              aria-label={`Close ${tab.name}`}
+              aria-label={t("editor.closeTab", { name: tab.name })}
               onClick={(event) => {
                 event.stopPropagation();
                 void useEditorStore.getState().closeFile(tab.path);
@@ -57,7 +59,7 @@ export function EditorArea() {
         ))}
       </div>
       {activeTab ? (
-        <div className="breadcrumbs" aria-label="Breadcrumbs">
+        <div className="breadcrumbs" aria-label={t("editor.breadcrumbs")}>
           {root ? <span className="crumb root">{basename(root)}</span> : null}
           {activeTab.path.split("/").map((part, index) => (
             <span className="crumb" key={`${part}-${index}`}>
@@ -71,8 +73,8 @@ export function EditorArea() {
         <div className={`editor-banner${activeTab.deletedOnDisk ? " danger" : " warning"}`}>
           <span>
             {activeTab.deletedOnDisk
-              ? `${activeTab.name} was deleted on disk.`
-              : `${activeTab.name} changed on disk.`}
+              ? t("editor.deletedOnDisk", { name: activeTab.name })
+              : t("editor.changedOnDisk", { name: activeTab.name })}
           </span>
           {activeTab.deletedOnDisk ? (
             <button
@@ -80,7 +82,7 @@ export function EditorArea() {
               className="banner-action"
               onClick={() => void useEditorStore.getState().saveFile(activeTab.path, true)}
             >
-              Recreate file
+              {t("editor.recreateFile")}
             </button>
           ) : (
             <>
@@ -89,21 +91,21 @@ export function EditorArea() {
                 className="banner-action"
                 onClick={() => void useEditorStore.getState().reloadFromDisk(activeTab.path)}
               >
-                Reload
+                {t("editor.reload")}
               </button>
               <button
                 type="button"
                 className="banner-action"
                 onClick={() => void useEditorStore.getState().saveFile(activeTab.path, true)}
               >
-                Overwrite
+                {t("editor.overwrite")}
               </button>
             </>
           )}
           <button
             type="button"
             className="banner-dismiss"
-            aria-label="Dismiss"
+            aria-label={t("editor.dismiss")}
             onClick={() => useEditorStore.getState().setExternalChange(activeTab.path, false)}
           >
             <CloseIcon size={12} />
@@ -120,52 +122,52 @@ export function EditorArea() {
           }}
         />
         {tabs.length === 0 ? (
-          <section className="welcome-overlay" aria-label="Welcome">
+          <section className="welcome-overlay" aria-label={t("editor.welcome")}>
             <div className="welcome-logo">
               Anvil<span>IDE</span>
             </div>
-            <div className="welcome-sub">Forge C++ at full speed. <span className="version-chip">v{version} · experimental</span></div>
+            <div className="welcome-sub">{t("editor.tagline")} <span className="version-chip">v{version} · {t("editor.experimental")}</span></div>
             <div className="welcome-grid">
               <div className="welcome-card">
-                <h4>Start</h4>
+                <h4>{t("editor.start")}</h4>
                 <ul>
                   <li onClick={() => void openFolderDialog()}>
-                    <span>Open Folder…</span>
+                    <span>{t("command.openFolder")}</span>
                     <kbd>Ctrl+Shift+O</kbd>
                   </li>
                   <li onClick={() => void openFileDialog()}>
-                    <span>Open File…</span>
+                    <span>{t("command.openFile")}</span>
                     <kbd>Ctrl+O</kbd>
                   </li>
                   {root ? (
                     <li onClick={() => useUiStore.getState().showPrompt({
-                      title: "New File",
-                      label: "Create a file in the workspace root",
-                      confirmLabel: "Create",
+                      title: t("dialog.newFileTitle"),
+                      label: t("dialog.newFileLabelRoot"),
+                      confirmLabel: t("common.create"),
                       onSubmit: async (name) => {
                         const path = await useWorkspaceStore.getState().createEntry("", name, "file");
                         if (path) await useEditorStore.getState().openFile(path);
                       },
                     })}>
-                      <span>New File…</span>
+                      <span>{t("command.newFile")}</span>
                       <kbd>Ctrl+N</kbd>
                     </li>
                   ) : null}
                   <li onClick={openQuickOpen}>
-                    <span>Go to File…</span>
+                    <span>{t("command.goFile")}</span>
                     <kbd>Ctrl+P</kbd>
                   </li>
                   <li onClick={openCommandPalette}>
-                    <span>Command Palette…</span>
+                    <span>{t("command.palette")}</span>
                     <kbd>Ctrl+Shift+P</kbd>
                   </li>
                 </ul>
               </div>
               <div className="welcome-card">
-                <h4>Recent</h4>
+                <h4>{t("editor.recent")}</h4>
                 <ul>
                   {recent.length === 0 ? (
-                    <li className="welcome-muted">No recent folders yet.</li>
+                    <li className="welcome-muted">{t("editor.noRecent")}</li>
                   ) : (
                     recent.slice(0, 6).map((entry) => (
                       <li key={entry.path} title={entry.path}>
@@ -175,7 +177,7 @@ export function EditorArea() {
                         <button
                           type="button"
                           className="recent-remove"
-                          aria-label={`Remove ${entry.name} from recent`}
+                          aria-label={t("editor.removeRecent", { name: entry.name })}
                           onClick={(event) => {
                             event.stopPropagation();
                             void removeRecent(entry.path);
@@ -189,19 +191,19 @@ export function EditorArea() {
                 </ul>
               </div>
               <div className="welcome-card">
-                <h4>Learn</h4>
+                <h4>{t("editor.learn")}</h4>
                 <ul>
-                  <li><span>Command Palette</span><kbd>Ctrl+Shift+P</kbd></li>
-                  <li><span>Go to Definition</span><kbd>F12</kbd></li>
-                  <li><span>Find References</span><kbd>Shift+F12</kbd></li>
-                  <li><span>Save</span><kbd>Ctrl+S</kbd></li>
-                  <li><span>Toggle Sidebar</span><kbd>Ctrl+B</kbd></li>
-                  <li><span>Problems</span><kbd>Ctrl+Shift+M</kbd></li>
+                  <li><span>{t("command.palette")}</span><kbd>Ctrl+Shift+P</kbd></li>
+                  <li><span>{t("command.goDefinition")}</span><kbd>F12</kbd></li>
+                  <li><span>{t("command.findReferences")}</span><kbd>Shift+F12</kbd></li>
+                  <li><span>{t("command.save")}</span><kbd>Ctrl+S</kbd></li>
+                  <li><span>{t("command.toggleSidebar")}</span><kbd>Ctrl+B</kbd></li>
+                  <li><span>{t("panel.problems")}</span><kbd>Ctrl+Shift+M</kbd></li>
                 </ul>
               </div>
             </div>
             <div className="welcome-footer">
-              C++ intelligence by clangd · sandboxed language servers · no telemetry
+              {t("editor.welcomeFooter")}
             </div>
           </section>
         ) : null}

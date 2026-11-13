@@ -3,6 +3,7 @@ import type { LspDiagnostic, LspStatusPayload } from "../ipc/types";
 import { AnvilError } from "../ipc/bridge";
 import { useUiStore } from "./ui";
 import { useCoreStore } from "./core";
+import { t } from "../i18n";
 
 interface LspState {
   statuses: Record<string, LspStatusPayload>;
@@ -44,7 +45,7 @@ export const useLspStore = create<LspState>((set, get) => ({
         ? error.message
         : error instanceof Error
           ? error.message
-          : "C++ intelligence is unavailable";
+          : t("error.lsp");
     useCoreStore.getState().addLog("clangd", message);
     if (!get().failureNotified) {
       useUiStore.getState().toast("warning", message);

@@ -8,6 +8,7 @@ export interface BootInfo {
   initialWorkspace: string;
   e2eFile: string;
   theme: ThemePreference;
+  locale: string;
 }
 
 declare global {
@@ -39,6 +40,7 @@ export const boot: BootInfo = {
   initialWorkspace: window.__ANVIL_BOOT__?.initialWorkspace ?? "",
   e2eFile: window.__ANVIL_BOOT__?.e2eFile ?? "",
   theme: window.__ANVIL_BOOT__?.theme ?? "auto",
+  locale: window.__ANVIL_BOOT__?.locale ?? "en",
 };
 
 export const nativeBridgeAvailable = Boolean(

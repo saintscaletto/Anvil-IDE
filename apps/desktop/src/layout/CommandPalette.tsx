@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { commands, type Command } from "../commands";
+import { useI18n } from "../i18n";
 import { useUiStore } from "../stores/ui";
 
-function score(command: Command, query: string): number {
+interface LocalizedCommand {
+  command: Command;
+  title: string;
+  category: string;
+}
+
+function score(item: LocalizedCommand, query: string): number {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return 1;
-  const title = command.title.toLowerCase();
-  const category = command.category.toLowerCase();
+  const title = item.title.toLowerCase();
+  const category = item.category.toLowerCase();
   if (title.startsWith(normalized)) return 100;
   const titleIndex = title.indexOf(normalized);
   if (titleIndex >= 0) return 80 - titleIndex;
@@ -21,6 +28,7 @@ function score(command: Command, query: string): number {
 }
 
 export function CommandPalette() {
+  const { t } = useI18n();
   const open = useUiStore((state) => state.paletteOpen);
   const setOpen = useUiStore((state) => state.setPaletteOpen);
   const [query, setQuery] = useState("");
@@ -28,15 +36,25 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
+  const localized = useMemo(
+    () =>
+      commands.map((command) => ({
+        command,
+        title: t(command.titleKey),
+        category: t(command.categoryKey),
+      })),
+    [t],
+  );
+
   const filtered = useMemo(
     () =>
-      commands
-        .map((command) => ({ command, score: score(command, query) }))
-        .filter((item) => item.score > 0)
+      localized
+        .map((item) => ({ item, score: score(item, query) }))
+        .filter((entry) => entry.score > 0)
         .sort((a, b) => b.score - a.score)
-        .map((item) => item.command)
+        .map((entry) => entry.item)
         .slice(0, 60),
-    [query],
+    [localized, query],
   );
 
   useEffect(() => {
@@ -60,12 +78,12 @@ export function CommandPalette() {
       void Promise.resolve(command.run()).catch((error: unknown) => {
         useUiStore
           .getState()
-          .toast("error", error instanceof Error ? error.message : "Command failed");
+          .toast("error", error instanceof Error ? error.message : t("palette.commandFailed"));
       });
     } catch (error) {
       useUiStore
         .getState()
-        .toast("error", error instanceof Error ? error.message : "Command failed");
+        .toast("error", error instanceof Error ? error.message : t("palette.commandFailed"));
     }
   };
 
@@ -76,13 +94,13 @@ export function CommandPalette() {
         if (event.target === event.currentTarget) setOpen(false);
       }}
     >
-      <div className="cmd-palette" role="dialog" aria-modal="true" aria-label="Command palette">
+      <div className="cmd-palette" role="dialog" aria-modal="true" aria-label={t("palette.dialogLabel")}>
         <input
           ref={inputRef}
           className="cmd-input"
           value={query}
-          placeholder="Type a command…"
-          aria-label="Command"
+          placeholder={t("palette.placeholder")}
+          aria-label={t("palette.inputLabel")}
           role="combobox"
           aria-expanded="true"
           aria-controls="anvil-command-list"
@@ -99,8 +117,8 @@ export function CommandPalette() {
               setActiveIndex((index) => Math.max(index - 1, 0));
             } else if (event.key === "Enter") {
               event.preventDefault();
-              const command = filtered[activeIndex];
-              if (command) run(command);
+              const selected = filtered[activeIndex];
+              if (selected) run(selected.command);
             } else if (event.key === "Escape") {
               event.preventDefault();
               setOpen(false);
@@ -109,20 +127,20 @@ export function CommandPalette() {
         />
         <ul className="cmd-list" id="anvil-command-list" role="listbox" ref={listRef}>
           {filtered.length === 0 ? (
-            <li className="cmd-empty">No matching commands.</li>
+            <li className="cmd-empty">{t("palette.empty")}</li>
           ) : (
-            filtered.map((command, index) => (
+            filtered.map((entry, index) => (
               <li
-                key={command.id}
+                key={entry.command.id}
                 role="option"
                 aria-selected={index === activeIndex}
                 className={index === activeIndex ? "active" : ""}
                 onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => run(command)}
+                onClick={() => run(entry.command)}
               >
-                <span className="cmd-category">{command.category}</span>
-                <span className="cmd-title">{command.title}</span>
-                {command.keybinding ? <kbd>{command.keybinding}</kbd> : null}
+                <span className="cmd-category">{entry.category}</span>
+                <span className="cmd-title">{entry.title}</span>
+                {entry.command.keybinding ? <kbd>{entry.command.keybinding}</kbd> : null}
               </li>
             ))
           )}

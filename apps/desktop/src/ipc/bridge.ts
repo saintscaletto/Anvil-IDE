@@ -1,4 +1,5 @@
 import { nativeBridgeAvailable } from "../bootstrap";
+import { t } from "../i18n";
 
 export class AnvilError extends Error {
   readonly code: number;
@@ -52,7 +53,7 @@ class Bridge {
   request<T>(method: string, params: Record<string, unknown> = {}, timeoutMs = 20_000): Promise<T> {
     if (!this.available) {
       return Promise.reject(
-        new AnvilError(-32000, "The native Anvil bridge is not available in this browser."),
+        new AnvilError(-32000, t("error.bridgeUnavailable")),
       );
     }
     const id = this.nextId++;
@@ -60,7 +61,7 @@ class Bridge {
       const timer = window.setTimeout(() => {
         this.pending.delete(id);
         this.notify("request/cancel", { targetId: id });
-        reject(new AnvilError(-32011, `Request timed out: ${method}`));
+        reject(new AnvilError(-32011, t("error.requestTimeout", { method })));
       }, timeoutMs);
       this.pending.set(id, {
         method,
@@ -82,7 +83,7 @@ class Bridge {
         reject(
           new AnvilError(
             -32000,
-            error instanceof Error ? error.message : "Failed to post message to Anvil",
+            error instanceof Error ? error.message : t("error.postMessage"),
           ),
         );
       }

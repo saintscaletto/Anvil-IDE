@@ -165,6 +165,7 @@ export interface SystemInfo {
 }
 
 export type ThemePreference = "auto" | "dark" | "light" | "high-contrast";
+export type LanguagePreference = "auto" | "en" | "ru";
 export type EditorLineHeight = "compact" | "normal" | "relaxed";
 
 export interface Settings {
@@ -184,6 +185,7 @@ export interface Settings {
   "ui.theme": ThemePreference;
   "ui.fontFamily": string;
   "ui.fontSize": number;
+  "ui.language": LanguagePreference;
 }
 
 export interface FontFamilyInfo {

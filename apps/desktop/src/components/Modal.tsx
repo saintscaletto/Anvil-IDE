@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { CloseIcon } from "./Icons";
+import { useI18n } from "../i18n";
 
 interface ModalProps {
   title: string;
@@ -11,6 +12,7 @@ interface ModalProps {
 }
 
 export function Modal({ title, onClose, children, footer, wide, className }: ModalProps) {
+  const { t } = useI18n();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -75,7 +77,7 @@ export function Modal({ title, onClose, children, footer, wide, className }: Mod
       >
         <header className="modal-header">
           <h2>{title}</h2>
-          <button type="button" className="icon-button" aria-label="Close dialog" onClick={onClose}>
+          <button type="button" className="icon-button" aria-label={t("common.closeDialog")} onClick={onClose}>
             <CloseIcon size={14} />
           </button>
         </header>

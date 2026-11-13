@@ -15,6 +15,7 @@ namespace anvil {
 [[nodiscard]] bool is_valid_font_family(std::string_view value);
 [[nodiscard]] bool is_valid_theme_id(std::string_view value);
 [[nodiscard]] bool is_valid_line_height_mode(std::string_view value);
+[[nodiscard]] bool is_valid_language_preference(std::string_view value);
 
 class Settings {
 public:
@@ -40,6 +41,7 @@ public:
     [[nodiscard]] std::string editor_font_family() const;
     [[nodiscard]] bool editor_font_ligatures() const;
     [[nodiscard]] std::string editor_line_height() const;
+    [[nodiscard]] std::string ui_language() const;
 
     [[nodiscard]] std::filesystem::path file_path() const;
 

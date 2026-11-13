@@ -2,6 +2,7 @@ import { monaco } from "./models";
 import type { Settings } from "../ipc/types";
 import { currentAppTheme, type AppTheme } from "../theme/apply";
 import { editorFontStack, lineHeightFor } from "../theme/fonts";
+import { t } from "../i18n";
 
 let themeRegistered = false;
 
@@ -310,7 +311,7 @@ export function editorOptions(settings: Settings): monaco.editor.IStandaloneEdit
     links: true,
     colorDecorators: true,
     accessibilitySupport: "auto",
-    ariaLabel: "Anvil code editor",
+    ariaLabel: t("editor.codeEditorAria"),
     scrollbar: {
       verticalScrollbarSize: 10,
       horizontalScrollbarSize: 10,

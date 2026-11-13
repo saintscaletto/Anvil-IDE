@@ -18,6 +18,7 @@ import { forgetDocVersion, resetDocVersion } from "../editor/docVersions";
 import { forgetTextSync, resetTextSync } from "../editor/textSync";
 import { useLspStore } from "./lsp";
 import { useUiStore } from "./ui";
+import { t } from "../i18n";
 import { useWorkspaceStore } from "./workspace";
 
 export interface EditorTab {
@@ -72,7 +73,7 @@ let saveStateTimer = 0;
 
 function errorText(error: unknown): string {
   if (error instanceof AnvilError || error instanceof Error) return error.message;
-  return "Unexpected editor error";
+  return t("error.editor");
 }
 
 function activeTabOf(state: EditorState): EditorTab | undefined {
@@ -99,7 +100,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     const root = useWorkspaceStore.getState().root;
     if (root === null) {
-      useUiStore.getState().toast("error", "Open a folder before opening a file");
+      useUiStore.getState().toast("error", t("action.openFolderBeforeFile"));
       return false;
     }
     let result;
@@ -161,9 +162,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!tab) return true;
     if (tab.dirty && !force) {
       useUiStore.getState().showConfirm({
-        title: "Unsaved changes",
-        message: `Save changes to ${tab.name} before closing?`,
-        confirmLabel: "Close without saving",
+        title: t("dialog.unsavedTitle"),
+        message: t("dialog.saveChangesBeforeClosing", { name: tab.name }),
+        confirmLabel: t("dialog.closeWithoutSaving"),
         danger: true,
         onConfirm: () => {
           void get().closeFile(path, true);
@@ -214,7 +215,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         get().setExternalChange(path, true);
         useUiStore
           .getState()
-          .toast("warning", "This file changed on disk. Reload it or overwrite the disk version.");
+          .toast("warning", t("action.fileChangedOnDisk"));
       } else {
         useUiStore.getState().toast("error", errorText(error));
       }

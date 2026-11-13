@@ -1,7 +1,9 @@
 import { CheckIcon, CloseIcon, ErrorIcon, InfoIcon, WarningIcon } from "../components/Icons";
 import { useUiStore } from "../stores/ui";
+import { useI18n } from "../i18n";
 
 export function Toasts() {
+  const { t } = useI18n();
   const toasts = useUiStore((state) => state.toasts);
   const dismiss = useUiStore((state) => state.dismissToast);
   if (toasts.length === 0) return null;
@@ -24,7 +26,7 @@ export function Toasts() {
           <button
             type="button"
             className="toast-close"
-            aria-label="Dismiss notification"
+            aria-label={t("toast.dismiss")}
             onClick={() => dismiss(toast.id)}
           >
             <CloseIcon size={11} />

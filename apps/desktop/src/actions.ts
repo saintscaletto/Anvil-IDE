@@ -11,10 +11,11 @@ import { useLspStore } from "./stores/lsp";
 import { useSettingsStore } from "./stores/settings";
 import { useUiStore } from "./stores/ui";
 import { useWorkspaceStore } from "./stores/workspace";
+import { t } from "./i18n";
 
 export function errorMessage(error: unknown): string {
   if (error instanceof AnvilError || error instanceof Error) return error.message;
-  return "Unexpected Anvil error";
+  return t("action.unexpectedError");
 }
 
 export async function openWorkspacePath(
@@ -30,9 +31,9 @@ export async function openWorkspacePath(
 
   if (!force && editor.tabs.some((tab) => tab.dirty) && workspace.root !== path) {
     ui.showConfirm({
-      title: "Unsaved changes",
-      message: `Opening ${basename(path)} will discard unsaved editors in the current folder.`,
-      confirmLabel: "Open anyway",
+      title: t("dialog.unsavedTitle"),
+      message: t("dialog.openingDiscards", { name: basename(path) }),
+      confirmLabel: t("dialog.openAnyway"),
       danger: true,
       onConfirm: async () => {
         await openWorkspacePath(path, true, afterOpen);
@@ -48,7 +49,7 @@ export async function openWorkspacePath(
   editor.reset();
   await editor.restoreState(result.state.tabs, result.state.active);
   if (!result.watch) {
-    ui.toast("warning", "File watching is unavailable; refresh the explorer manually.");
+    ui.toast("warning", t("action.watcherUnavailable"));
   }
   if (afterOpen) await afterOpen();
   return true;
@@ -78,7 +79,7 @@ export async function openFileDialog(): Promise<void> {
 export async function saveActive(): Promise<void> {
   const editor = useEditorStore.getState();
   if (!editor.activePath) {
-    useUiStore.getState().toast("info", "There is no active editor to save.");
+    useUiStore.getState().toast("info", t("action.noActiveEditor"));
     return;
   }
   await editor.saveFile(editor.activePath);
@@ -87,7 +88,7 @@ export async function saveActive(): Promise<void> {
 export async function saveAll(): Promise<void> {
   const editor = useEditorStore.getState();
   if (editor.tabs.length === 0) {
-    useUiStore.getState().toast("info", "There are no open editors to save.");
+    useUiStore.getState().toast("info", t("action.noOpenEditors"));
     return;
   }
   await editor.saveAll();
@@ -107,13 +108,13 @@ export async function closeFolder(): Promise<void> {
     editor.reset();
     useLspStore.getState().reset();
     await workspace.closeWorkspace();
-    ui.toast("info", "Folder closed");
+    ui.toast("info", t("action.folderClosed"));
   };
   if (editor.tabs.some((tab) => tab.dirty)) {
     ui.showConfirm({
-      title: "Unsaved changes",
-      message: "This folder has unsaved editors. Close it without saving?",
-      confirmLabel: "Close folder",
+      title: t("dialog.unsavedTitle"),
+      message: t("dialog.closeFolderMessage"),
+      confirmLabel: t("dialog.closeFolderConfirm"),
       danger: true,
       onConfirm: closeNow,
     });
@@ -135,7 +136,7 @@ export async function requestCloseApp(): Promise<void> {
 export async function closeSavingAll(): Promise<boolean> {
   const saved = await useEditorStore.getState().saveAll();
   if (!saved) {
-    useUiStore.getState().toast("error", "Some files could not be saved.");
+    useUiStore.getState().toast("error", t("action.saveFailed"));
     return false;
   }
   await api.shellClose();
@@ -150,14 +151,16 @@ export async function newFile(directory = ""): Promise<void> {
   const workspace = useWorkspaceStore.getState();
   const ui = useUiStore.getState();
   if (!workspace.root) {
-    ui.toast("info", "Open a folder first.");
+    ui.toast("info", t("action.openFolderFirst"));
     return;
   }
   ui.showPrompt({
-    title: "New File",
-    label: directory ? `Create a file in ${directory}/` : "Create a file in the workspace root",
+    title: t("dialog.newFileTitle"),
+    label: directory
+      ? t("dialog.newFileLabel", { directory })
+      : t("dialog.newFileLabelRoot"),
     initialValue: "",
-    confirmLabel: "Create",
+    confirmLabel: t("common.create"),
     onSubmit: async (name) => {
       const path = await workspace.createEntry(directory, name, "file");
       if (path) await useEditorStore.getState().openFile(path);
@@ -169,14 +172,16 @@ export async function newFolder(directory = ""): Promise<void> {
   const workspace = useWorkspaceStore.getState();
   const ui = useUiStore.getState();
   if (!workspace.root) {
-    ui.toast("info", "Open a folder first.");
+    ui.toast("info", t("action.openFolderFirst"));
     return;
   }
   ui.showPrompt({
-    title: "New Folder",
-    label: directory ? `Create a folder in ${directory}/` : "Create a folder in the workspace root",
+    title: t("dialog.newFolderTitle"),
+    label: directory
+      ? t("dialog.newFolderLabel", { directory })
+      : t("dialog.newFolderLabelRoot"),
     initialValue: "",
-    confirmLabel: "Create",
+    confirmLabel: t("common.create"),
     onSubmit: async (name) => {
       await workspace.createEntry(directory, name, "directory");
     },
@@ -187,10 +192,10 @@ export async function renameEntry(path: string): Promise<void> {
   const workspace = useWorkspaceStore.getState();
   const ui = useUiStore.getState();
   ui.showPrompt({
-    title: "Rename",
-    label: "New name",
+    title: t("dialog.renameTitle"),
+    label: t("dialog.renameLabel"),
     initialValue: basename(path),
-    confirmLabel: "Rename",
+    confirmLabel: t("common.rename"),
     onSubmit: async (name) => {
       if (name === basename(path)) return;
       const newPath = await workspace.renameEntry(path, name);
@@ -205,17 +210,17 @@ export function deleteEntry(path: string, isDirectory: boolean): void {
   const workspace = useWorkspaceStore.getState();
   const ui = useUiStore.getState();
   ui.showConfirm({
-    title: "Delete",
-    message: `Delete ${basename(path)}? This operation cannot be undone.`,
-    confirmLabel: "Delete",
+    title: t("dialog.deleteTitle"),
+    message: t("explorer.deleteMessage", { name: basename(path) }),
+    confirmLabel: t("common.delete"),
     danger: true,
     onConfirm: async () => {
       const deleted = await workspace.deleteEntry(path, false);
       if (!deleted && isDirectory) {
         ui.showConfirm({
-          title: "Delete non-empty folder?",
-          message: `${basename(path)} may not be empty. Delete it and everything inside?`,
-          confirmLabel: "Delete recursively",
+          title: t("explorer.deleteRecursiveTitle"),
+          message: t("explorer.deleteRecursiveMessage", { name: basename(path) }),
+          confirmLabel: t("explorer.deleteRecursiveConfirm"),
           danger: true,
           onConfirm: async () => {
             await workspace.deleteEntry(path, true);
@@ -292,7 +297,7 @@ export async function findReferences(): Promise<void> {
   const editor = getActiveEditor();
   const model = editor?.getModel();
   if (!editor || !model) {
-    useUiStore.getState().toast("info", "Open a C++ file to find references.");
+    useUiStore.getState().toast("info", t("action.openCppForReferences"));
     return;
   }
   const path = useEditorStore.getState().activePath;
@@ -304,7 +309,7 @@ export async function findReferences(): Promise<void> {
       character: position.column - 1,
     });
     if (result.locations.length === 0) {
-      useUiStore.getState().toast("info", "No references found.");
+      useUiStore.getState().toast("info", t("action.noReferences"));
       return;
     }
     useUiStore.getState().setReferences({ filePath: path, locations: result.locations });
@@ -332,7 +337,7 @@ export async function restartLanguageServer(): Promise<void> {
         break;
       }
     }
-    useUiStore.getState().toast("success", "Language server restarted.");
+    useUiStore.getState().toast("success", t("action.lspRestarted"));
   } catch (error) {
     useUiStore.getState().toast("error", errorMessage(error));
   }
@@ -375,15 +380,15 @@ export async function restartCore(): Promise<void> {
   const ui = useUiStore.getState();
   const editor = useEditorStore.getState();
   const restart = async () => {
-    ui.toast("warning", "Restarting the Anvil core. Open your folder again afterwards.");
+    ui.toast("warning", t("action.restartCoreToast"));
     await api.shellRestartCore();
     window.location.reload();
   };
   if (editor.tabs.some((tab) => tab.dirty)) {
     ui.showConfirm({
-      title: "Restart Anvil core?",
-      message: "Unsaved editors will be lost when the core restarts.",
-      confirmLabel: "Restart and discard changes",
+      title: t("dialog.restartCoreTitle"),
+      message: t("dialog.restartCoreMessage"),
+      confirmLabel: t("dialog.restartCoreConfirm"),
       danger: true,
       onConfirm: restart,
     });

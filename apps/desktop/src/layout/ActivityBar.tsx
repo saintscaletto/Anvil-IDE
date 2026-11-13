@@ -1,6 +1,8 @@
 import { openSecurity, openSettings, showActivity } from "../actions";
 import { useCoreStore } from "../stores/core";
 import { useUiStore, type Activity } from "../stores/ui";
+import type { MessageKey } from "../i18n";
+import { useI18n } from "../i18n";
 import {
   BranchIcon,
   FilesIcon,
@@ -10,32 +12,34 @@ import {
   SparklesIcon,
 } from "../components/Icons";
 
-const activities: Array<{ id: Activity; label: string; icon: typeof FilesIcon }> = [
-  { id: "explorer", label: "Explorer", icon: FilesIcon },
-  { id: "search", label: "Search", icon: SearchIcon },
-  { id: "scm", label: "Source Control", icon: BranchIcon },
-  { id: "ai", label: "Anvil AI", icon: SparklesIcon },
+const activities: Array<{ id: Activity; labelKey: MessageKey; icon: typeof FilesIcon }> = [
+  { id: "explorer", labelKey: "activity.explorer", icon: FilesIcon },
+  { id: "search", labelKey: "activity.search", icon: SearchIcon },
+  { id: "scm", labelKey: "activity.scm", icon: BranchIcon },
+  { id: "ai", labelKey: "activity.ai", icon: SparklesIcon },
 ];
 
 export function ActivityBar() {
+  const { t } = useI18n();
   const active = useUiStore((state) => state.activity);
   const sidebarVisible = useUiStore((state) => state.sidebarVisible);
   const sandbox = useCoreStore((state) => state.security?.sandbox ?? state.info?.security.sandbox);
   const sandboxOk = sandbox?.available === true;
 
   return (
-    <aside className="activity-bar" aria-label="Activity bar">
+    <aside className="activity-bar" aria-label={t("activity.barLabel")}>
       {activities.map((activity) => {
         const Icon = activity.icon;
+        const label = t(activity.labelKey);
         const selected = active === activity.id && sidebarVisible;
         return (
           <button
             type="button"
             key={activity.id}
             className={`activity-btn${selected ? " active" : ""}`}
-            aria-label={activity.label}
+            aria-label={label}
             aria-pressed={selected}
-            title={activity.label}
+            title={label}
             onClick={() => showActivity(activity.id)}
           >
             <Icon size={19} />
@@ -46,11 +50,11 @@ export function ActivityBar() {
       <button
         type="button"
         className={`activity-btn security-btn${sandboxOk ? " secure" : " insecure"}`}
-        aria-label="Security status"
+        aria-label={t("activity.securityStatus")}
         title={
           sandboxOk
-            ? "Security: language servers run in a bubblewrap sandbox"
-            : `Security: ${sandbox?.reason ?? "sandbox status unknown"}`
+            ? t("activity.securityOk")
+            : t("activity.securityReason", { reason: sandbox?.reason ?? t("common.unknown") })
         }
         onClick={openSecurity}
       >
@@ -60,8 +64,8 @@ export function ActivityBar() {
       <button
         type="button"
         className="activity-btn"
-        aria-label="Settings"
-        title="Settings"
+        aria-label={t("activity.settings")}
+        title={t("activity.settings")}
         onClick={openSettings}
       >
         <SettingsIcon size={18} />

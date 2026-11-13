@@ -3,8 +3,10 @@ import { useEditorStore } from "../stores/editor";
 import { useUiStore } from "../stores/ui";
 import { useWorkspaceStore } from "../stores/workspace";
 import type { SearchResult } from "../ipc/types";
+import { useI18n } from "../i18n";
 
 export function QuickOpen() {
+  const { t } = useI18n();
   const open = useUiStore((state) => state.quickOpenOpen);
   const setOpen = useUiStore((state) => state.setQuickOpenOpen);
   const root = useWorkspaceStore((state) => state.root);
@@ -79,13 +81,15 @@ export function QuickOpen() {
         if (event.target === event.currentTarget) setOpen(false);
       }}
     >
-      <div className="cmd-palette" role="dialog" aria-modal="true" aria-label="Go to file">
+      <div className="cmd-palette" role="dialog" aria-modal="true" aria-label={t("quickOpen.dialogLabel")}>
         <input
           ref={inputRef}
           className="cmd-input"
           value={query}
-          placeholder={root ? "Search file names…" : "Open a folder first"}
-          aria-label="File name"
+          placeholder={
+            root ? t("quickOpen.placeholder") : t("quickOpen.noFolderPlaceholder")
+          }
+          aria-label={t("quickOpen.fileNameLabel")}
           role="combobox"
           aria-expanded="true"
           aria-controls="anvil-quick-open-list"
@@ -108,12 +112,12 @@ export function QuickOpen() {
         />
         <ul className="cmd-list" id="anvil-quick-open-list" role="listbox" ref={listRef}>
           {!root ? (
-            <li className="cmd-empty">No folder is open.</li>
+            <li className="cmd-empty">{t("quickOpen.noFolder")}</li>
           ) : loading ? (
-            <li className="cmd-empty">Searching…</li>
+            <li className="cmd-empty">{t("quickOpen.searching")}</li>
           ) : results.length === 0 ? (
             <li className="cmd-empty">
-              {query.trim() ? "No matching files." : "No open editors. Type a file name."}
+              {query.trim() ? t("quickOpen.noMatches") : t("quickOpen.noEditors")}
             </li>
           ) : (
             results.map((result, index) => (

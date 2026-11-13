@@ -209,6 +209,22 @@ TEST(Validate, WorkspaceAndSettings) {
     EXPECT_FALSE(validate::parse_settings_set(
                      Json{{"key", "editor.fontLigatures"}, {"value", false}})
                      .value.get<bool>());
+    for (const char* language : {"auto", "en", "ru"}) {
+        EXPECT_EQ(validate::parse_settings_set(
+                      Json{{"key", "ui.language"}, {"value", language}})
+                      .value.get<std::string>(),
+                  language);
+    }
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "ui.language"}, {"value", "de"}});
+              }),
+              ErrorCode::InvalidParams);
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "ui.language"}, {"value", 42}});
+              }),
+              ErrorCode::InvalidParams);
     EXPECT_EQ(error_code([] {
                   validate::parse_settings_set(
                       Json{{"key", "editor.fontLigatures"}, {"value", "yes"}});

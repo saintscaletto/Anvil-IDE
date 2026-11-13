@@ -21,6 +21,7 @@ TEST(Settings, DefaultsAndPersistence) {
     EXPECT_EQ(defaults["editor.fontFamily"], "");
     EXPECT_EQ(defaults["editor.fontLigatures"], true);
     EXPECT_EQ(defaults["editor.lineHeight"], "normal");
+    EXPECT_EQ(defaults["ui.language"], "auto");
 
     settings.set("ui.theme", "light");
     settings.set("ui.fontFamily", "Noto Sans");
@@ -28,6 +29,7 @@ TEST(Settings, DefaultsAndPersistence) {
     settings.set("editor.fontFamily", "JetBrains Mono");
     settings.set("editor.fontLigatures", false);
     settings.set("editor.lineHeight", "relaxed");
+    settings.set("ui.language", "ru");
 
     Settings reloaded;
     reloaded.load(config);
@@ -38,12 +40,14 @@ TEST(Settings, DefaultsAndPersistence) {
     EXPECT_EQ(values["editor.fontFamily"], "JetBrains Mono");
     EXPECT_EQ(values["editor.fontLigatures"], false);
     EXPECT_EQ(values["editor.lineHeight"], "relaxed");
+    EXPECT_EQ(values["ui.language"], "ru");
     EXPECT_EQ(reloaded.ui_theme(), "light");
     EXPECT_EQ(reloaded.ui_font_family(), "Noto Sans");
     EXPECT_EQ(reloaded.ui_font_size(), 15);
     EXPECT_EQ(reloaded.editor_font_family(), "JetBrains Mono");
     EXPECT_FALSE(reloaded.editor_font_ligatures());
     EXPECT_EQ(reloaded.editor_line_height(), "relaxed");
+    EXPECT_EQ(reloaded.ui_language(), "ru");
 }
 
 TEST(Settings, RejectsInvalidValues) {
@@ -59,6 +63,8 @@ TEST(Settings, RejectsInvalidValues) {
     EXPECT_THROW(settings.set("editor.fontFamily", "\"Injected\""), ApiError);
     EXPECT_THROW(settings.set("editor.lineHeight", "huge"), ApiError);
     EXPECT_THROW(settings.set("editor.fontLigatures", "yes"), ApiError);
+    EXPECT_THROW(settings.set("ui.language", "de"), ApiError);
+    EXPECT_THROW(settings.set("ui.language", 1), ApiError);
     EXPECT_THROW(settings.set("unknown.key", true), ApiError);
 }
 
@@ -103,6 +109,9 @@ TEST(Settings, FontFamilyValidation) {
     EXPECT_FALSE(anvil::is_valid_theme_id("High-Contrast"));
     EXPECT_TRUE(anvil::is_valid_line_height_mode("compact"));
     EXPECT_FALSE(anvil::is_valid_line_height_mode("wide"));
+    EXPECT_TRUE(anvil::is_valid_language_preference("auto"));
+    EXPECT_TRUE(anvil::is_valid_language_preference("ru"));
+    EXPECT_FALSE(anvil::is_valid_language_preference("ru-RU"));
 }
 
 }  // namespace

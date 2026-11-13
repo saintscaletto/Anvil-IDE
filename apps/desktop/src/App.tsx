@@ -32,6 +32,13 @@ import { useWorkspaceStore } from "./stores/workspace";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { ShieldIcon, WarningIcon } from "./components/Icons";
 import { requestCloseApp, restartCore } from "./actions";
+import {
+  I18nProvider,
+  resolveLocale,
+  setRuntimeLocale,
+  t,
+  translate,
+} from "./i18n";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -40,7 +47,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : "Anvil could not start.";
+  return error instanceof Error ? error.message : t("app.couldNotStart");
 }
 
 export function App() {
@@ -60,7 +67,13 @@ export function App() {
   const workspaceRoot = useWorkspaceStore((state) => state.root);
   const settingsValues = useSettingsStore((state) => state.values);
   const themePreference = settingsValues["ui.theme"];
+  const locale = resolveLocale(settingsValues["ui.language"], boot.locale);
   useShortcuts();
+
+  useEffect(() => {
+    setRuntimeLocale(locale);
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   useEffect(() => {
     const apply = () => {
@@ -154,7 +167,7 @@ export function App() {
     unsubscribers.push(
       bridge.on("fs:rescan", () => {
         void useWorkspaceStore.getState().refreshAll();
-        useUiStore.getState().toast("warning", "File watcher overflow; workspace tree was refreshed.");
+        useUiStore.getState().toast("warning", t("app.watcherOverflow"));
       }),
     );
     unsubscribers.push(
@@ -167,7 +180,7 @@ export function App() {
             "warning",
             typeof payload?.["reason"] === "string"
               ? payload["reason"]
-              : "File watching is unavailable.",
+              : t("app.watcherUnavailable"),
           );
       }),
     );
@@ -185,7 +198,7 @@ export function App() {
         const message =
           payload && typeof payload["message"] === "string"
             ? payload["message"]
-            : "The Anvil core reported an error.";
+            : t("app.coreReportedError");
         useCoreStore.getState().setStatus("error", message);
         useUiStore.getState().toast("error", message);
       }),
@@ -199,13 +212,14 @@ export function App() {
             : payload && typeof payload["signal"] === "number"
               ? `signal ${payload["signal"]}`
               : "unexpected exit";
-        useCoreStore.getState().setStatus("error", `Anvil core stopped (${detail})`);
-        useUiStore.getState().toast("error", `Anvil core stopped (${detail})`);
+        const stopped = t("app.coreStopped", { detail });
+        useCoreStore.getState().setStatus("error", stopped);
+        useUiStore.getState().toast("error", stopped);
       }),
     );
     unsubscribers.push(
       bridge.on("core:overloaded", () => {
-        useUiStore.getState().toast("warning", "The Anvil core is busy; retry in a moment.");
+        useUiStore.getState().toast("warning", t("app.coreBusy"));
       }),
     );
     unsubscribers.push(
@@ -213,12 +227,12 @@ export function App() {
         const payload = asRecord(params);
         useUiStore
           .getState()
-          .toast("error", typeof payload?.["message"] === "string" ? payload["message"] : "Protocol error");
+          .toast("error", typeof payload?.["message"] === "string" ? payload["message"] : t("app.protocolError"));
       }),
     );
     unsubscribers.push(
       bridge.on("ui:processTerminated", () => {
-        useUiStore.getState().toast("error", "Anvil's web process terminated. Restart the window.");
+        useUiStore.getState().toast("error", t("app.webProcessTerminated"));
       }),
     );
     unsubscribers.push(
@@ -308,13 +322,17 @@ export function App() {
 
   const activeName = activeTab?.name ?? "";
   useEffect(() => {
+    const product = translate(locale, "app.product");
     const title = activeName
-      ? `${activeName} — ${workspaceName || "Anvil"} — Anvil IDE`
+      ? translate(locale, "app.documentTitle.tab", {
+          file: activeName,
+          workspace: workspaceName || "Anvil",
+        })
       : workspaceName
-        ? `${workspaceName} — Anvil IDE`
-        : "Anvil IDE";
+        ? translate(locale, "app.documentTitle.workspace", { workspace: workspaceName })
+        : product;
     void api.shellSetTitle(title).catch(() => undefined);
-  }, [activeName, workspaceName]);
+  }, [activeName, workspaceName, locale]);
 
   if (!nativeBridgeAvailable) {
     return (
@@ -322,12 +340,8 @@ export function App() {
         <div className="welcome-logo">
           Anvil<span>IDE</span>
         </div>
-        <h1>The native Anvil shell is required</h1>
-        <p>
-          This bundle must be started with the <code>anvil</code> executable. It cannot run in a
-          regular browser because filesystem and language-server access go through the native
-          C++ bridge.
-        </p>
+        <h1>{translate(locale, "app.nativeRequiredTitle")}</h1>
+        <p>{translate(locale, "app.nativeRequiredBody")}</p>
       </div>
     );
   }
@@ -340,7 +354,7 @@ export function App() {
         </div>
         <div className="boot-status">
           <span className="boot-spinner" />
-          Starting native core…
+          {translate(locale, "app.startingCore")}
         </div>
         {coreStatus === "error" && coreError ? <div className="boot-error">{coreError}</div> : null}
       </div>
@@ -348,7 +362,7 @@ export function App() {
   }
 
   return (
-    <>
+    <I18nProvider locale={locale}>
       <div
         className={`app${sidebarVisible ? "" : " sidebar-collapsed"}${panelVisible ? "" : " panel-collapsed"}`}
       >
@@ -362,29 +376,29 @@ export function App() {
       {coreStatus === "error" ? (
         <div className="core-error-banner" role="alert">
           <WarningIcon size={15} />
-          <span>{coreError ?? "The Anvil core is unavailable."}</span>
+          <span>{coreError ?? translate(locale, "app.coreUnavailable")}</span>
           <button type="button" className="banner-action" onClick={() => void restartCore()}>
-            Restart core
+            {translate(locale, "app.restartCore")}
           </button>
           <button
             type="button"
             className="banner-action"
             onClick={() => useUiStore.getState().showPanel("output")}
           >
-            Show output
+            {translate(locale, "app.showOutput")}
           </button>
         </div>
       ) : null}
       {!watcherAvailable && workspaceRoot ? (
         <div className="watcher-banner" role="status">
           <ShieldIcon size={13} />
-          File watching is unavailable. Use Refresh in the Explorer after external changes.
+          {translate(locale, "app.watcherBanner")}
         </div>
       ) : null}
       <CommandPalette />
       <QuickOpen />
       <Modals />
       <Toasts />
-    </>
+    </I18nProvider>
   );
 }

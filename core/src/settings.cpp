@@ -26,6 +26,7 @@ constexpr const char* kUiFontSize = "ui.fontSize";
 constexpr const char* kEditorFontFamily = "editor.fontFamily";
 constexpr const char* kEditorFontLigatures = "editor.fontLigatures";
 constexpr const char* kEditorLineHeight = "editor.lineHeight";
+constexpr const char* kUiLanguage = "ui.language";
 
 bool is_known_key(const std::string& key) {
     return key == kFontSize || key == kTabSize || key == kWordWrap || key == kMinimap ||
@@ -33,7 +34,7 @@ bool is_known_key(const std::string& key) {
            key == kEnableProjectConfig || key == kAllowUnsandboxedLsp || key == kHideGit ||
            key == kUiTheme || key == kUiFontFamily || key == kUiFontSize ||
            key == kEditorFontFamily || key == kEditorFontLigatures ||
-           key == kEditorLineHeight;
+           key == kEditorLineHeight || key == kUiLanguage;
 }
 
 int bounded_int(const Json& value, int fallback, int min_value, int max_value) {
@@ -97,6 +98,10 @@ bool is_valid_line_height_mode(std::string_view value) {
     return value == "compact" || value == "normal" || value == "relaxed";
 }
 
+bool is_valid_language_preference(std::string_view value) {
+    return value == "auto" || value == "en" || value == "ru";
+}
+
 void Settings::reset_defaults() {
     values_ = Json{
         {kFontSize, 14},
@@ -115,6 +120,7 @@ void Settings::reset_defaults() {
         {kEditorFontFamily, ""},
         {kEditorFontLigatures, true},
         {kEditorLineHeight, "normal"},
+        {kUiLanguage, "auto"},
     };
 }
 
@@ -233,6 +239,13 @@ void Settings::validate_assignment(const std::string& key, const Json& value) co
         if (!value.is_boolean()) {
             throw ApiError(ErrorCode::InvalidParams, key + " must be boolean");
         }
+    } else if (key == kUiLanguage) {
+        if (!value.is_string()) {
+            throw ApiError(ErrorCode::InvalidParams, "ui.language must be a string");
+        }
+        if (!is_valid_language_preference(value.get<std::string>())) {
+            throw ApiError(ErrorCode::InvalidParams, "Invalid ui.language");
+        }
     }
 }
 
@@ -342,6 +355,11 @@ bool Settings::editor_font_ligatures() const {
 std::string Settings::editor_line_height() const {
     std::lock_guard lock(mutex_);
     return string_or(values_.value(kEditorLineHeight, Json("normal")), "normal");
+}
+
+std::string Settings::ui_language() const {
+    std::lock_guard lock(mutex_);
+    return string_or(values_.value(kUiLanguage, Json("auto")), "auto");
 }
 
 std::filesystem::path Settings::file_path() const {

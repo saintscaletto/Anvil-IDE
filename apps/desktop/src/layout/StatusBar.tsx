@@ -12,8 +12,12 @@ import { useLspStore, problemCounts } from "../stores/lsp";
 import { useSettingsStore } from "../stores/settings";
 import { useUiStore } from "../stores/ui";
 import { useWorkspaceStore } from "../stores/workspace";
+import { useI18n, type MessageKey } from "../i18n";
 
-function languageLabel(language: string | undefined): string {
+function languageLabel(
+  language: string | undefined,
+  t: (key: MessageKey) => string,
+): string {
   switch (language) {
     case "cpp":
       return "C++";
@@ -34,15 +38,16 @@ function languageLabel(language: string | undefined): string {
     case "typescript":
       return "TypeScript";
     case "shell":
-      return "Shell Script";
+      return t("language.shellScript");
     case "cmake":
       return "CMake";
     default:
-      return "Plain Text";
+      return t("language.plainText");
   }
 }
 
 export function StatusBar() {
+  const { t } = useI18n();
   const git = useWorkspaceStore((state) => state.git);
   const cursor = useEditorStore((state) => state.cursor);
   const eol = useEditorStore((state) => state.eol);
@@ -64,27 +69,34 @@ export function StatusBar() {
     lspState === "running"
       ? "clangd"
       : lspState === "starting"
-        ? "clangd starting"
+        ? t("status.clangdStarting")
         : lspState === "error"
-          ? "clangd error"
-          : "clangd idle";
-  const indexing = progress?.percentage !== undefined ? ` · indexing ${Math.round(progress.percentage)}%` : "";
+          ? t("status.clangdError")
+          : t("status.clangdIdle");
+  const indexing =
+    progress?.percentage !== undefined
+      ? t("status.indexing", { percent: Math.round(progress.percentage) })
+      : "";
 
   return (
-    <footer className="statusbar" aria-label="Status bar">
+    <footer className="statusbar" aria-label={t("status.label")}>
       <button
         type="button"
         className="status-item"
-        title={git?.repository ? `Git branch: ${branch}` : "No Git repository"}
+        title={
+          git?.repository
+            ? t("status.gitBranch", { branch })
+            : t("status.noRepository")
+        }
         onClick={() => showActivity("scm")}
       >
         <BranchIcon size={13} />
-        {branch || "no repository"}
+        {branch || t("status.noRepositoryShort")}
       </button>
       <button
         type="button"
         className="status-item"
-        title="Show problems"
+        title={t("status.showProblems")}
         onClick={() => showPanel("problems")}
       >
         <ErrorIcon size={12} />
@@ -94,8 +106,8 @@ export function StatusBar() {
       </button>
       <div className="status-spacer" />
       {status !== "ready" ? (
-        <span className={`status-item status-${status}`} title="Anvil core status">
-          core {status}
+        <span className={`status-item status-${status}`} title={t("status.coreStatus")}>
+          {t("status.core", { status })}
         </span>
       ) : null}
       <button
@@ -106,7 +118,7 @@ export function StatusBar() {
             ? lspStatus.message
             : lspStatus
               ? `${lspStatus.server || "clangd"} ${lspStatus.version || ""}`
-              : "C++ language server is idle"
+              : t("status.lspIdle")
         }
         onClick={() => {
           if (lspState === "error" && lspStatus?.message) {
@@ -125,34 +137,34 @@ export function StatusBar() {
         title={
           sandbox
             ? sandbox.available
-              ? "Language servers are sandboxed with bubblewrap and seccomp"
-              : `Sandbox unavailable: ${sandbox.reason}`
-            : "Security status unknown"
+              ? t("status.sandboxOk")
+              : t("status.sandboxUnavailable", { reason: sandbox.reason })
+            : t("status.securityUnknown")
         }
         onClick={openSecurity}
       >
         <LockIcon size={12} />
-        {sandbox?.available ? "sandboxed" : "sandbox off"}
+        {sandbox?.available ? t("status.sandboxed") : t("status.sandboxOff")}
       </button>
-      <span className="status-item" title="Cursor position">
-        Ln {cursor.line}, Col {cursor.column}
+      <span className="status-item" title={t("status.cursorTitle")}>
+        {t("status.cursor", { line: cursor.line, column: cursor.column })}
       </span>
-      <span className="status-item" title="Indentation">
-        Spaces: {tabSize}
+      <span className="status-item" title={t("status.indentationTitle")}>
+        {t("status.spaces", { count: tabSize })}
       </span>
-      <span className="status-item" title="End-of-line sequence">
+      <span className="status-item" title={t("status.eolTitle")}>
         {eol}
       </span>
-      <span className="status-item" title="Encoding">
+      <span className="status-item" title={t("status.encodingTitle")}>
         UTF-8
       </span>
-      <span className="status-item" title="Language mode">
-        {activeTab ? languageLabel(activeTab.language) : "Anvil"}
+      <span className="status-item" title={t("status.languageTitle")}>
+        {activeTab ? languageLabel(activeTab.language, t) : "Anvil"}
       </span>
       <button
         type="button"
         className="status-item status-info"
-        title="About Anvil"
+        title={t("status.about")}
         onClick={() => useUiStore.getState().setAboutOpen(true)}
       >
         <InfoIcon size={12} />
