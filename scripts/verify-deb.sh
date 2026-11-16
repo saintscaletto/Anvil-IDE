@@ -24,8 +24,12 @@ VERSION="$(dpkg-deb -f "$DEB" Version)"
 RECOMMENDS="$(dpkg-deb -f "$DEB" Recommends)"
 echo "$RECOMMENDS" | grep -q 'bubblewrap' || fail "bubblewrap is not recommended"
 [ "$PACKAGE" = "anvil" ] || fail "unexpected package name"
-[ "$VERSION" = "0.0.1-1" ] || fail "unexpected version"
-pass "package metadata"
+UPSTREAM="$(sed -n 's/.*inline constexpr std::string_view kVersion = "\([^"]*\)".*/\1/p' \
+    "$ROOT/core/include/anvil/version.hpp")"
+[ -n "$UPSTREAM" ] || fail "cannot read the upstream version from version.hpp"
+printf '%s' "$VERSION" | grep -Eq "^${UPSTREAM}(~[^)]+)?-[0-9]+$" ||
+    fail "package version $VERSION does not match upstream $UPSTREAM"
+pass "package metadata (upstream $UPSTREAM)"
 
 dpkg-deb -x "$DEB" "$EXTRACT"
 [ -x "$EXTRACT/usr/bin/anvil" ] || fail "anvil binary missing"
@@ -53,8 +57,8 @@ if grep -Rqs 'rm -rf.*\.config/anvil' "$EXTRACT"/usr/share/doc 2>/dev/null; then
 fi
 pass "package scripts do not delete user data"
 
-"$EXTRACT/usr/bin/anvil" --version | grep -q '^anvil 0.0.1' || fail "shell version failed"
-"$EXTRACT/usr/lib/anvil/anvil-core" --version | grep -q '^anvil-core 0.0.1' || fail "core version failed"
+"$EXTRACT/usr/bin/anvil" --version | grep -q "^anvil ${UPSTREAM}$" || fail "shell version failed"
+"$EXTRACT/usr/lib/anvil/anvil-core" --version | grep -q "^anvil-core ${UPSTREAM} " || fail "core version failed"
 pass "version commands"
 
 SELF_TEST_CONFIG="$(mktemp -d /tmp/anvil-selftest-XXXXXX)"

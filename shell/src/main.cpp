@@ -702,7 +702,7 @@ void handle_shell_message(ShellApp* app, const Json& message) {
 
     if (method == "shell/info") {
         send_js_response(app, id,
-                         Json{{"version", "0.0.1"},
+                         Json{{"version", ANVIL_VERSION},
                               {"native", true},
                               {"platform", "linux"},
                               {"uiDir", app->options.ui_dir},
@@ -949,7 +949,7 @@ void on_activate(GtkApplication* application, gpointer user_data) {
                      G_CALLBACK(on_script_message), app);
 
     Json boot{{"native", true},
-              {"version", "0.0.1"},
+              {"version", ANVIL_VERSION},
               {"e2e", app->options.e2e},
               {"devMode", app->options.dev_mode},
               {"initialWorkspace", app->options.workspace},
@@ -1025,7 +1025,7 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         const std::string argument = argv[i];
         if (argument == "--version" || argument == "-v") {
-            std::printf("anvil 0.0.1\n");
+            std::printf("anvil %s\n", ANVIL_VERSION);
             return 0;
         }
         if (argument == "--help" || argument == "-h") {

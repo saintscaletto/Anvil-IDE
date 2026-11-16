@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(anvil VERSION 0.0.1 LANGUAGES C CXX)
+# core/include/anvil/version.hpp is the single source of truth for the
+# version. CMake, the shell, the Debian metadata and the SBOM all derive from
+# it; scripts/check-version.sh fails the build if a copy drifts.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/core/include/anvil/version.hpp" ANVIL_VERSION_HEADER)
+string(REGEX MATCH "kVersion = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"" ANVIL_VERSION_MATCH "${ANVIL_VERSION_HEADER}")
+set(ANVIL_VERSION "${CMAKE_MATCH_1}")
+if(NOT ANVIL_VERSION)
+    message(FATAL_ERROR "cannot read kVersion from core/include/anvil/version.hpp")
+endif()
+
+project(anvil VERSION ${ANVIL_VERSION} LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

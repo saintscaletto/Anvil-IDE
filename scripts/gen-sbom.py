@@ -2,12 +2,25 @@
 """Generate a CycloneDX 1.5 SBOM for the staged Anvil package."""
 import hashlib
 import json
+import re
 import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def upstream_version() -> str:
+    """Read kVersion from the canonical header."""
+    header = (ROOT / "core" / "include" / "anvil" / "version.hpp").read_text()
+    match = re.search(r'kVersion = "([^"]+)"', header)
+    if match is None:
+        raise SystemExit("cannot read kVersion from version.hpp")
+    return match.group(1)
+
+
+VERSION = upstream_version()
 STAGE = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "build" / "deb" / "root"
 OUTPUT = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "dist" / "sbom.json"
 
@@ -25,7 +38,7 @@ def file_component(name: str, path: Path, license_id: str = "Apache-2.0") -> dic
         "type": "file",
         "bom-ref": f"file:{name}",
         "name": name,
-        "version": "0.0.1",
+        "version": VERSION,
         "licenses": [{"license": {"id": license_id}}],
     }
     if path.exists():
@@ -38,7 +51,7 @@ components = [
         "type": "application",
         "bom-ref": "app:anvil",
         "name": "Anvil IDE",
-        "version": "0.0.1",
+        "version": VERSION,
         "licenses": [{"license": {"id": "Apache-2.0"}}],
         "description": "C++-first IDE with a native core, WebKitGTK shell and Monaco editor.",
     },
@@ -106,7 +119,7 @@ sbom = {
     "version": 1,
     "metadata": {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "tools": [{"vendor": "Anvil", "name": "scripts/gen-sbom.py", "version": "0.0.1"}],
+        "tools": [{"vendor": "Anvil", "name": "scripts/gen-sbom.py", "version": VERSION}],
         "component": components[0],
     },
     "components": components[1:],

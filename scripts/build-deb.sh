@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Build the Anvil 0.0.1 Debian package, SBOM and a signed local APT repository.
+# Build the Anvil Debian package, SBOM and a signed local APT repository.
+# The upstream version comes from core/include/anvil/version.hpp.
+# ANVIL_PRERELEASE=pre1 produces 0.0.2~pre1-1, which apt sorts before the
+# final 0.0.2-1; unset it (or pass an empty value) for a final release.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="0.0.1-1"
-UPSTREAM="0.0.1"
+UPSTREAM="$("$ROOT/scripts/check-version.sh" --print)"
+PRE="${ANVIL_PRERELEASE:-pre1}"
+VERSION="${UPSTREAM}${PRE:+~${PRE}}-1"
 ARCH="amd64"
 DIST="$ROOT/dist"
 STAGE="$ROOT/build/deb/root"
@@ -13,6 +17,9 @@ REPO="$DIST/apt"
 GNUPG="$DIST/gnupg"
 
 mkdir -p "$DIST"
+
+echo "== version =="
+echo "package version: $VERSION (upstream $UPSTREAM)"
 
 echo "== tests =="
 "$ROOT/scripts/test.sh"
@@ -70,7 +77,7 @@ Description: Fast, lightweight C++ IDE with a native core
  WebKitGTK view. Language servers run in a bubblewrap sandbox with
  seccomp, without network access and with a read-only workspace.
  .
- This 0.0.1 release is experimental. Build, debug, terminal, Git write
+ This 0.0.2 pre-release is experimental. Build, debug, terminal, Git write
  operations, plugins, and AI are scheduled for later phases.
 CONTROL
 
