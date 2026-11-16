@@ -6,13 +6,13 @@
 
 | Field | Value |
 |---|---|
-| File version | 1.1 |
-| Applies to | Anvil IDE **0.0.1** (released), **0.0.2** in progress |
+| File version | 1.2 |
+| Applies to | Anvil IDE **0.0.1** (released), **0.0.2~pre1** (pre-release packaged) |
 | Last updated | 2026-11-13 |
 | Owner | Project author |
 | Repository | `github.com/saintscaletto/anvilide` |
 | Working branch | `devel/0.0.2` |
-| Current artifact | `dist/anvil_0.0.1-1_amd64.deb` (0.0.2 not packaged yet) |
+| Current artifact | `dist/anvil_0.0.2~pre1-1_amd64.deb` (pre-release) |
 | Target platform | Ubuntu 24.04 LTS, x86_64 |
 | License | Apache-2.0 (bundled Monaco/React/Zustand are MIT) |
 
@@ -26,16 +26,19 @@
 - **Security:** workspace jail, argv-only spawn, sandboxed clangd
   (bubblewrap + seccomp), no telemetry, no remote content. §2 is binding.
 - **Released:** 0.0.1 — open/edit C++, clangd intelligence, diagnostics, `.deb`.
-- **Next:** 0.0.2 — IMP-001/IMP-002/IMP-004 delivered on `devel/0.0.2`
-  (Russian UI, themes, fonts); IMP-003 (Codewhale) and IMP-005 (ROS 2
-  environment) remain.
+- **Next:** 0.0.2 pre-release is packaged (`0.0.2~pre1-1`): IMP-001,
+  IMP-002, IMP-004 delivered; IMP-003 (Codewhale) and IMP-005 (ROS 2
+  environment) remain before the final 0.0.2.
 - **Roadmap:** §7 — global plan with per-item status for Phase 1–4, release
   map, cross-cutting workstreams, and the definition of 1.0.
 - **Your two backlog fields:** §8 Bugs and §9 Improvements. Add entries with
   the templates; never delete old ones.
 - **Build/test:** `./scripts/build.sh release`, `./scripts/test.sh`,
   `./scripts/build-deb.sh`; UI gates: `npm run typecheck`, `npm run build`,
-  `npm run check:contrast`, `npm run check:i18n`.
+  `npm run check:contrast`, `npm run check:i18n`; version gate:
+  `./scripts/check-version.sh`.
+- **Install (pre-release):**
+  `sudo apt install ./dist/anvil_0.0.2~pre1-1_amd64.deb`.
 - **For a new chat:** use the prompt in §0.1 verbatim.
 
 ---
@@ -347,6 +350,11 @@ normalized system locale for `auto`; core remains the owner and validator of
 both values. `shell/listFonts` enumerates fontconfig families read-only for the
 font picker.
 
+The product version is single-sourced in `core/include/anvil/version.hpp`:
+CMake derives the project version from it, the shell uses the CMake macro, and
+the Debian changelog, AppStream metadata, UI manifest and SBOM are checked by
+`scripts/check-version.sh` (run from `scripts/test.sh`).
+
 ---
 
 ## 4. Repository map
@@ -377,12 +385,13 @@ apps/desktop/
   src/actions.ts            user-facing workflows
   src/i18n/                 typed en/ru dictionaries, t(), pluralization
   src/theme/                theme resolution and font application
-  scripts/                  contrast and untranslated-text gates
+  scripts/                  contrast, i18n, and version-consistency gates
   src/styles.css            theme-scoped design tokens and layout
 assets/                     icon PNG/SVG
 packaging/debian/           control, changelog, copyright, desktop, metainfo,
                             maintainer scripts, bwrap AppArmor profile
-scripts/                    build, test, package, verify, E2E, SBOM, sysroot
+scripts/                    build, test, package, verify, E2E, SBOM, sysroot,
+                            version-consistency gate
 tests/fixtures/sample_cpp/  C++ fixture used by E2E (run prepare-fixtures.sh)
 tests/e2e/                  shell allowlist test page
 docs/                       ARCHITECTURE, BUILD, benchmarks, threat-model,
@@ -436,7 +445,7 @@ documented in `docs/BUILD.md` §4. It is compiled out of release builds.
 ### 5.4. Tests and checks
 
 ```bash
-./scripts/test.sh              # 55 core/security/integration tests
+./scripts/test.sh              # version check + 55 core/security/integration tests
 ./scripts/prepare-fixtures.sh  # generate the fixture's compile_commands.json
 ./scripts/test-e2e.sh          # shell workspace-allowlist + bridge smoke
 cd apps/desktop && npm run typecheck && npm run build
@@ -452,8 +461,9 @@ project scripts.
 Package verification:
 
 ```bash
-./scripts/build-deb.sh
-./scripts/verify-deb.sh dist/anvil_0.0.1-1_amd64.deb
+ANVIL_PRERELEASE=pre1 ./scripts/build-deb.sh   # default for 0.0.2
+./scripts/verify-deb.sh dist/anvil_0.0.2~pre1-1_amd64.deb
+ANVIL_PRERELEASE= ./scripts/build-deb.sh       # final 0.0.2-1 later
 ```
 
 `build-deb.sh` runs tests, release build, staging, SBOM, dependency
@@ -466,7 +476,7 @@ calculation, `dpkg-deb`, signed APT repo generation, and the verifier.
 | Startup to interactive welcome | ~0.85 s | < 0.5 s | Missed |
 | Idle PSS (no workspace) | ~255 MiB | < 300 MiB | Met (PSS) |
 | Full stack with clangd | > 800 MiB RSS | < 300 MiB | Missed |
-| `.deb` size | ~1.35 MiB | < 15 MiB | Met |
+| `.deb` size | ~1.35 MiB (0.0.2~pre1: 1.35 MiB) | < 15 MiB | Met |
 | Core/security tests | 55/55 | all | Met |
 
 Details and methodology: `docs/benchmarks.md`. Do not quote these numbers
@@ -711,8 +721,8 @@ security review, and a fake-Codewhale transport test).
 - [x] UI gates pass: `npm run check:contrast` (three themes, AA) and
       `npm run check:i18n` (no literal untranslated JSX text).
 - [x] Screenshots in `en` and `ru` exist under `docs/screenshots/0.0.2/`.
-- [ ] `./scripts/build-deb.sh` produces a `.deb` under 15 MiB and
-      `./scripts/verify-deb.sh` passes.
+- [x] `./scripts/build-deb.sh` produces a `.deb` under 15 MiB and
+      `./scripts/verify-deb.sh` passes (`0.0.2~pre1-1`, 1.35 MiB, PASS).
 - [ ] Startup and idle memory are not worse than 0.0.1 by more than 10%; record
       the numbers in `docs/benchmarks.md`.
 - [x] `PROJECT.md` statuses and §11 changelog are updated.
@@ -1404,7 +1414,8 @@ A change needs an explicit security note in the PR/summary and tests when it:
 | Version | Date | Theme | Delivered | Artifact |
 |---|---|---|---|---|
 | 0.0.1 | 2026-11-13 | Phase 1 MVP | C++ editing, clangd intelligence, sandbox, `.deb`, tests, threat model | `anvil_0.0.1-1_amd64.deb` |
-| 0.0.2 | in progress | Personalization + environment + agent | IMP-001, IMP-002, IMP-004 delivered; IMP-003, IMP-005 pending | `anvil_0.0.2-1_amd64.deb` (not built) |
+| 0.0.2~pre1 | 2026-11-16 | Personalization + localization pre-release | IMP-001, IMP-002, IMP-004; version single-sourcing | `anvil_0.0.2~pre1-1_amd64.deb` |
+| 0.0.2 | in progress | Personalization + environment + agent | IMP-003, IMP-005 pending | `anvil_0.0.2-1_amd64.deb` (not built) |
 
 ### 0.0.1 — 2026-11-13
 
@@ -1419,7 +1430,14 @@ A change needs an explicit security note in the PR/summary and tests when it:
 - 51 tests; `.deb` with SBOM, threat model, AppStream, bwrap AppArmor profile,
   signed local APT repo.
 
-### 0.0.2 — in progress (`devel/0.0.2`)
+### 0.0.2~pre1 — 2026-11-16 (pre-release package)
+
+Installable pre-release: `dist/anvil_0.0.2~pre1-1_amd64.deb` (1.35 MiB,
+`PASS` from `scripts/verify-deb.sh`, including a GUI smoke test from the
+extracted package). Release notes: `docs/releases/v0.0.2-pre1.md`.
+The extracted package was also exercised directly: `settings/set` persists for
+theme/language/font size, and the shipped bundle renders the Russian light
+theme (`docs/screenshots/0.0.2/packaged-ru-light-editor.png`).
 
 Delivered:
 
@@ -1436,6 +1454,11 @@ Delivered:
 - Core settings schema and IPC validation extended; 55 tests pass.
 - Verification screenshots in `docs/screenshots/0.0.2/`; visual checks were run
   under Xvfb with the real WebKitGTK shell.
+- Version single-sourcing: `core/include/anvil/version.hpp` is canonical;
+  CMake, shell, Debian metadata, AppStream, UI manifest and SBOM derive from or
+  are checked against it by `scripts/check-version.sh`.
+- Debian pre-release versioning: `0.0.2~pre1-1` sorts before the future
+  `0.0.2-1`, so `apt install` upgrades cleanly to the final release.
 - Not started: IMP-003 (Codewhale, needs ADR/security review) and IMP-005
   (ROS 2 environment, needs owner answers on distro/workspace policy).
 
@@ -1452,6 +1475,7 @@ Delivered:
 | `docs/RELEASE-CHECKLIST.md` | Per-release checklist status for 0.0.1 |
 | `docs/adr/0001-native-cpp-shell.md` | Why the shell is C++ WebKitGTK, not Tauri |
 | `docs/releases/v0.0.1.md` | Release notes for 0.0.1 (also used on GitHub) |
+| `docs/releases/v0.0.2-pre1.md` | Release notes for the 0.0.2 pre-release |
 | `prompts/masterprompt_0.0.1.md` | Original product specification (historical) |
 
 If a reference document and this file disagree about **current status, scope, or

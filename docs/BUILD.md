@@ -1,4 +1,4 @@
-# Building Anvil 0.0.1
+# Building Anvil 0.0.2
 
 Target: Ubuntu 24.04 LTS (noble), x86_64.
 
@@ -144,12 +144,19 @@ through `WebKitWebView.get_snapshot()`.
 ## 9. Build the `.deb`
 
 ```bash
-./scripts/build-deb.sh
+./scripts/build-deb.sh                      # 0.0.2~pre1-1 (default)
+ANVIL_PRERELEASE= ./scripts/build-deb.sh    # final 0.0.2-1
 ```
+
+The upstream version comes from `core/include/anvil/version.hpp`;
+`scripts/check-version.sh` (also run by `scripts/test.sh`) fails if the CMake
+project, shell, UI manifest, Debian changelog, or AppStream metadata drift from
+it. `ANVIL_PRERELEASE` adds the Debian `~` suffix so apt sorts the pre-release
+before the final package.
 
 Artifacts are written to `dist/`:
 
-- `anvil_0.0.1-1_amd64.deb`
+- `anvil_0.0.2~pre1-1_amd64.deb` (pre-release)
 - `sbom.json`
 - `apt/` — a signed local Apt repository layout
 - `anvil-test-key.asc` — demonstration signing key (not for production)
@@ -157,7 +164,7 @@ Artifacts are written to `dist/`:
 Install locally with:
 
 ```bash
-sudo apt install ./dist/anvil_0.0.1-1_amd64.deb
+sudo apt install ./dist/anvil_0.0.2~pre1-1_amd64.deb
 anvil ~/src/my-project
 ```
 
@@ -175,7 +182,7 @@ Security Status dialog shows the exact reason.
 ## 10. Verification
 
 ```bash
-./scripts/verify-deb.sh dist/anvil_0.0.1-1_amd64.deb
+./scripts/verify-deb.sh dist/anvil_0.0.2~pre1-1_amd64.deb
 ```
 
 The verifier checks the package metadata, extracts it into a temporary root,

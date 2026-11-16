@@ -1,3 +1,22 @@
+anvil (0.0.2~pre1-1) noble; urgency=medium
+
+  * Pre-release of the 0.0.2 personalization and localization work.
+  * Russian and English UI with live switching, system-locale detection,
+    typed dictionaries, pluralization, and localized dates (IMP-001).
+  * Anvil Dark, Anvil Light, and Anvil High Contrast themes plus automatic
+    system following, with Monaco variants and WCAG AA contrast on UI text
+    (IMP-002).
+  * UI and editor font family, size, line height, and ligature selection
+    backed by read-only fontconfig enumeration (IMP-004).
+  * Settings validation for ui.theme, ui.language, ui.fontFamily, ui.fontSize,
+    editor.fontFamily, editor.lineHeight, and editor.fontLigatures.
+  * Version is now derived from core/include/anvil/version.hpp, guarded by
+    scripts/check-version.sh.
+  * This pre-release is experimental. The Codewhale connector (IMP-003) and
+    ROS 2 environment resolution (IMP-005) are not included.
+
+ -- Anvil IDE Authors <anvil@localhost>  Mon, 16 Nov 2026 10:30:00 +0000
+
 anvil (0.0.1-1) noble; urgency=medium
 
   * Initial experimental release for Ubuntu 24.04 LTS.

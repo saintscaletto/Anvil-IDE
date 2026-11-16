@@ -1,8 +1,9 @@
 # Anvil IDE
 
-> **Status: 0.0.1 (experimental).** C and C++ editing with clangd
+> **Status: 0.0.2 pre-release (experimental).** C and C++ editing with clangd
 > intelligence, a native C++ core, a sandboxed language server, and a Monaco
-> UI inside WebKitGTK. Build/run, debugging, the integrated terminal, Git write
+> UI inside WebKitGTK — now with English/Russian UI, three themes, and font
+> selection. Build/run, debugging, the integrated terminal, Git write
 > operations, plugins, and AI are **not** part of this release.
 
 ## Project handbook
@@ -30,21 +31,28 @@ Most modern editors bolt C++ support on top of a generic text editor. Anvil take
 - **Security first** — project files are untrusted, every IPC path is
   workspace-scoped and validated, and clangd runs in bubblewrap + seccomp with
   a read-only workspace and no network.
-- **Multi-language by design** — the LSP manager is generic; 0.0.1 wires only
-  C/C++. Rust and Python are Phase 2.
+- **Multi-language by design** — the LSP manager is generic; this release wires
+  only C/C++. Rust and Python are Phase 2.
 
 ## Why "Anvil"?
 
 Because good code isn't written — it's forged. Anvil is the surface you strike against: hard, precise, and honest. Every tool in your workflow swings down onto it, and what comes out is something you can ship.
 
-## What works in 0.0.1
+## What works in 0.0.2
 
 - Open a real folder; lazy file tree with inotify refresh; create, rename, and
   delete files and folders.
 - Tabs with dirty state, crash-safe workspace state restore, atomic saves, and
   external-change detection with Reload/Overwrite.
-- Monaco editor with the Anvil dark theme, C++ syntax highlighting, minimap,
-  bracket colorization, view-state restore, and per-file models.
+- Monaco editor with C++ syntax highlighting, minimap, bracket colorization,
+  view-state restore, and per-file models.
+- Anvil Dark, Anvil Light, and Anvil High Contrast themes, plus automatic
+  system following; all UI text pairs meet WCAG AA.
+- English and Russian interface with instant switching (`Automatic`, English,
+  Русский), typed dictionaries, and pluralization. Diagnostics and logs stay in
+  the language of the underlying tool.
+- UI and editor font family, size, line height, and ligature settings backed by
+  installed fontconfig families, with safe fallbacks.
 - clangd lifecycle in a sandbox: hover, completion, go-to-definition, find
   references, signature help, formatting requests, and diagnostics.
 - Problems panel with real clangd diagnostics and click-to-navigate.
@@ -58,12 +66,15 @@ Everything else is an explicit roadmap empty state, not a fake implementation.
 
 ## Install (Ubuntu 24.04)
 
-A ready package is built into `dist/`:
+A ready pre-release package is built into `dist/`:
 
 ```bash
-sudo apt install ./dist/anvil_0.0.1-1_amd64.deb
+sudo apt install ./dist/anvil_0.0.2~pre1-1_amd64.deb
 anvil /path/to/your/project
 ```
+
+`~pre1` is a Debian pre-release version: it installs normally now and is
+upgraded automatically when the final `0.0.2-1` package appears.
 
 Recommended packages (installed automatically as Recommends by apt):
 `bubblewrap`, `clangd-18`, `gdb` or `lldb`, `git`, `cmake`, and `ninja-build`.
@@ -118,7 +129,7 @@ methods, data flows, and deliberate omissions.
   compiled out; the development override requires a dev build, an environment
   variable, and a setting, and is written to the audit log.
 - Strict CSP, local assets only, no remote content, no telemetry, no AI
-  provider. Secrets are not stored in 0.0.1.
+  provider. Secrets are not stored in this release.
 - Security events are written to `~/.config/anvil/logs/security.log` with
   redaction.
 
@@ -127,10 +138,10 @@ Read the full [threat model](docs/security/threat-model.md).
 ## Build and test
 
 ```bash
-./scripts/test.sh          # 51 core/security/integration tests
+./scripts/test.sh          # 55 core/security/integration tests
 ./scripts/build.sh release # release binaries + UI bundle
 ./scripts/build-deb.sh     # .deb, SBOM, signed local APT repo
-./scripts/verify-deb.sh dist/anvil_0.0.1-1_amd64.deb
+./scripts/verify-deb.sh dist/anvil_0.0.2~pre1-1_amd64.deb
 ```
 
 Test hooks:
@@ -144,7 +155,7 @@ build/dev/shell/anvil --smoke-test --dev
 Screenshots and benchmark notes are in [docs/benchmarks.md](docs/benchmarks.md);
 UI evidence is in `docs/screenshots/`.
 
-## Known limitations of 0.0.1
+## Known limitations of 0.0.2
 
 - Start-up to the interactive welcome screen measured ~0.85 s in the reference
   VM, above the 500 ms goal. WebKitGTK process startup and the Monaco bundle
@@ -152,7 +163,11 @@ UI evidence is in `docs/screenshots/`.
 - Full-stack memory with clangd exceeds the 300 MiB goal; clangd's background
   index is the largest contributor.
 - No build/run, debugger, terminal, Git staging/commit, plugin, or AI support
-  yet. Those panels state their phase instead of pretending to work.
+  yet. Those panels state their phase instead of pretending to work. The
+  Codewhale connector (IMP-003) and ROS 2 environment resolution (IMP-005) are
+  not part of this pre-release.
+- Native GTK file dialogs follow the system locale, not the in-app language
+  setting.
 - The UI is a single bundle because `file://` cannot reliably load lazy ES
   module chunks; a custom URI scheme is planned.
 - The local APT repository in `dist/` is signed with a demonstration key. It

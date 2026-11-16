@@ -18,7 +18,7 @@
       content.
     </p>
     <p>
-      This 0.0.1 release is experimental. Build integration, debugging,
+      This 0.0.2 pre-release is experimental. Build integration, debugging,
       an integrated terminal, Git write operations, plugins, and AI are
       scheduled for later phases.
     </p>
@@ -34,6 +34,11 @@
   </categories>
   <icon type="stock">anvil</icon>
   <releases>
+    <release version="0.0.2" date="2026-11-16" type="development">
+      <description>
+        <p>Russian and English UI, three themes, and font selection.</p>
+      </description>
+    </release>
     <release version="0.0.1" date="2026-11-13">
       <description>
         <p>Initial experimental release with clangd hover, completion, navigation, and diagnostics.</p>
