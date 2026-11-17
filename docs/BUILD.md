@@ -144,7 +144,7 @@ through `WebKitWebView.get_snapshot()`.
 ## 9. Build the `.deb`
 
 ```bash
-./scripts/build-deb.sh                      # 0.0.2~pre1-1 (default)
+./scripts/build-deb.sh                      # 0.0.2~pre2-1 (default)
 ANVIL_PRERELEASE= ./scripts/build-deb.sh    # final 0.0.2-1
 ```
 
@@ -156,7 +156,7 @@ before the final package.
 
 Artifacts are written to `dist/`:
 
-- `anvil_0.0.2~pre1-1_amd64.deb` (pre-release)
+- `anvil_0.0.2~pre2-1_amd64.deb` (pre-release)
 - `sbom.json`
 - `apt/` — a signed local Apt repository layout
 - `anvil-test-key.asc` — demonstration signing key (not for production)
@@ -164,7 +164,7 @@ Artifacts are written to `dist/`:
 Install locally with:
 
 ```bash
-sudo apt install ./dist/anvil_0.0.2~pre1-1_amd64.deb
+sudo apt install ./dist/anvil_0.0.2~pre2-1_amd64.deb
 anvil ~/src/my-project
 ```
 
@@ -182,7 +182,7 @@ Security Status dialog shows the exact reason.
 ## 10. Verification
 
 ```bash
-./scripts/verify-deb.sh dist/anvil_0.0.2~pre1-1_amd64.deb
+./scripts/verify-deb.sh dist/anvil_0.0.2~pre2-1_amd64.deb
 ```
 
 The verifier checks the package metadata, extracts it into a temporary root,

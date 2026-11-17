@@ -1,3 +1,26 @@
+anvil (0.0.2~pre2-1) noble; urgency=medium
+
+  * Automatic dependency and include resolution for C/C++ projects.
+  * Every compile_commands.json found in the project and common build layouts
+    is merged into one cache copy; clangd reads it through
+    --compile-commands-dir (IMP-006).
+  * Include roots named by the compile database are mounted read-only in the
+    language-server sandbox automatically: /usr/local, /opt, and safe user
+    dependency directories under $HOME. No manual includePath setup.
+  * Sensitive directories (~/.ssh, ~/.gnupg, keyrings, credential stores) are
+    never mounted and never suggested.
+  * Roots outside automatic prefixes get a one-click banner in the editor
+    instead of silent squiggles; approving persists lsp.includePaths.
+  * New settings: lsp.includePaths and lsp.queryDriver.
+  * clangd receives --query-driver for the compiler recorded in the compile
+    database, so built-in system include paths resolve inside the sandbox.
+  * The background index now lives in the writable private cache instead of
+    the read-only workspace, removing index errors from the log.
+  * 68 tests, including environment discovery, include classification,
+    secret-path refusal, and read-only sandbox mounts.
+
+ -- Anvil IDE Authors <anvil@localhost>  Tue, 17 Nov 2026 11:30:00 +0000
+
 anvil (0.0.2~pre1-1) noble; urgency=medium
 
   * Pre-release of the 0.0.2 personalization and localization work.

@@ -53,6 +53,11 @@ Because good code isn't written — it's forged. Anvil is the surface you strike
   the language of the underlying tool.
 - UI and editor font family, size, line height, and ligature settings backed by
   installed fontconfig families, with safe fallbacks.
+- Automatic dependency resolution: `compile_commands.json` files are merged and
+  their include folders are mounted read-only in the language-server sandbox, so
+  projects with dependencies in `/opt`, `/usr/local`, or `~/deps` work without
+  hand-written `includePath` configuration. Anything unusual gets a one-click
+  prompt, and credential folders are never exposed.
 - clangd lifecycle in a sandbox: hover, completion, go-to-definition, find
   references, signature help, formatting requests, and diagnostics.
 - Problems panel with real clangd diagnostics and click-to-navigate.
@@ -69,7 +74,7 @@ Everything else is an explicit roadmap empty state, not a fake implementation.
 A ready pre-release package is built into `dist/`:
 
 ```bash
-sudo apt install ./dist/anvil_0.0.2~pre1-1_amd64.deb
+sudo apt install ./dist/anvil_0.0.2~pre2-1_amd64.deb
 anvil /path/to/your/project
 ```
 
@@ -141,7 +146,7 @@ Read the full [threat model](docs/security/threat-model.md).
 ./scripts/test.sh          # 55 core/security/integration tests
 ./scripts/build.sh release # release binaries + UI bundle
 ./scripts/build-deb.sh     # .deb, SBOM, signed local APT repo
-./scripts/verify-deb.sh dist/anvil_0.0.2~pre1-1_amd64.deb
+./scripts/verify-deb.sh dist/anvil_0.0.2~pre2-1_amd64.deb
 ```
 
 Test hooks:
@@ -168,6 +173,8 @@ UI evidence is in `docs/screenshots/`.
   not part of this pre-release.
 - Native GTK file dialogs follow the system locale, not the in-app language
   setting.
+- A dependency folder outside `/usr/local`, `/opt`, and `$HOME` needs one click
+  to approve; sensitive folders such as `~/.ssh` can never be approved.
 - The UI is a single bundle because `file://` cannot reliably load lazy ES
   module chunks; a custom URI scheme is planned.
 - The local APT repository in `dist/` is signed with a demonstration key. It

@@ -7,7 +7,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UPSTREAM="$("$ROOT/scripts/check-version.sh" --print)"
-PRE="${ANVIL_PRERELEASE:-pre1}"
+PRE="${ANVIL_PRERELEASE:-pre2}"
 VERSION="${UPSTREAM}${PRE:+~${PRE}}-1"
 ARCH="amd64"
 DIST="$ROOT/dist"

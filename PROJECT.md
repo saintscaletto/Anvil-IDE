@@ -6,13 +6,13 @@
 
 | Field | Value |
 |---|---|
-| File version | 1.2 |
-| Applies to | Anvil IDE **0.0.1** (released), **0.0.2~pre1** (pre-release packaged) |
+| File version | 1.3 |
+| Applies to | Anvil IDE **0.0.1** (released), **0.0.2~pre2** (pre-release packaged) |
 | Last updated | 2026-11-13 |
 | Owner | Project author |
 | Repository | `github.com/saintscaletto/anvilide` |
 | Working branch | `devel/0.0.2` |
-| Current artifact | `dist/anvil_0.0.2~pre1-1_amd64.deb` (pre-release) |
+| Current artifact | `dist/anvil_0.0.2~pre2-1_amd64.deb` (pre-release) |
 | Target platform | Ubuntu 24.04 LTS, x86_64 |
 | License | Apache-2.0 (bundled Monaco/React/Zustand are MIT) |
 
@@ -26,9 +26,9 @@
 - **Security:** workspace jail, argv-only spawn, sandboxed clangd
   (bubblewrap + seccomp), no telemetry, no remote content. §2 is binding.
 - **Released:** 0.0.1 — open/edit C++, clangd intelligence, diagnostics, `.deb`.
-- **Next:** 0.0.2 pre-release is packaged (`0.0.2~pre1-1`): IMP-001,
-  IMP-002, IMP-004 delivered; IMP-003 (Codewhale) and IMP-005 (ROS 2
-  environment) remain before the final 0.0.2.
+- **Next:** 0.0.2 pre-release is packaged (`0.0.2~pre2-1`): IMP-001,
+  IMP-002, IMP-004, IMP-006 delivered; IMP-003 (Codewhale) and IMP-005
+  (ROS 2 setup.bash profiles) remain before the final 0.0.2.
 - **Roadmap:** §7 — global plan with per-item status for Phase 1–4, release
   map, cross-cutting workstreams, and the definition of 1.0.
 - **Your two backlog fields:** §8 Bugs and §9 Improvements. Add entries with
@@ -38,7 +38,7 @@
   `npm run check:contrast`, `npm run check:i18n`; version gate:
   `./scripts/check-version.sh`.
 - **Install (pre-release):**
-  `sudo apt install ./dist/anvil_0.0.2~pre1-1_amd64.deb`.
+  `sudo apt install ./dist/anvil_0.0.2~pre2-1_amd64.deb`.
 - **For a new chat:** use the prompt in §0.1 verbatim.
 
 ---
@@ -236,7 +236,8 @@ typed validator in `core/src/ipc/validate.cpp`.
 | Git (read-only) | `git/branch` |
 | Cancel | `request/cancel` (notification) |
 
-Core → UI events: `lsp:status`, `lsp:diagnostics`, `lsp:log`, `lsp:message`,
+Core → UI events: `lsp:status`, `lsp:diagnostics`, `lsp:unresolvedIncludes`,
+`lsp:log`, `lsp:message`,
 `lsp:progress`, `fs:changed`, `fs:rescan`, `fs:watchUnavailable`.
 
 Shell-only methods: `shell/info`, `shell/openFolder`, `shell/openFile`,
@@ -331,6 +332,8 @@ metadata in 0.0.1 except files the user creates.
 | `lsp.clangdPath` | string | `clangd` | Name or absolute path |
 | `lsp.clangdArgs` | string[] | `[]` | ≤ 32 entries, ≤ 256 chars each |
 | `lsp.enableProjectConfig` | bool | false | Reads untrusted `.clangd` |
+| `lsp.includePaths` | string[] | `[]` | ≤ 16 absolute dependency roots; explicit consent |
+| `lsp.queryDriver` | string | `""` | Optional compiler path for system include discovery |
 | `security.allowUnsandboxedLsp` | bool | false | Dev builds only |
 | `explorer.hideGit` | bool | true | Hide `.git` in tree |
 | `editor.fontFamily` | string | `""` (default mono stack) | Validated family name |
@@ -372,7 +375,7 @@ core/
   src/recent.cpp            recent projects + workspace state
   src/git_branch.cpp        read-only .git/HEAD inspection
   src/main.cpp              CLI: --stdio, --self-test, --dev
-  tests/                    55 GoogleTest cases + fake LSP server
+  tests/                    68 GoogleTest cases + fake LSP server
 shell/src/main.cpp          GTK3/WebKitGTK shell, bridge, dialogs, E2E
 apps/desktop/
   src/layout/               TitleBar, ActivityBar, Sidebar, EditorArea,
@@ -445,7 +448,7 @@ documented in `docs/BUILD.md` §4. It is compiled out of release builds.
 ### 5.4. Tests and checks
 
 ```bash
-./scripts/test.sh              # version check + 55 core/security/integration tests
+./scripts/test.sh              # version check + 68 core/security/integration tests
 ./scripts/prepare-fixtures.sh  # generate the fixture's compile_commands.json
 ./scripts/test-e2e.sh          # shell workspace-allowlist + bridge smoke
 cd apps/desktop && npm run typecheck && npm run build
@@ -462,7 +465,7 @@ Package verification:
 
 ```bash
 ANVIL_PRERELEASE=pre1 ./scripts/build-deb.sh   # default for 0.0.2
-./scripts/verify-deb.sh dist/anvil_0.0.2~pre1-1_amd64.deb
+./scripts/verify-deb.sh dist/anvil_0.0.2~pre2-1_amd64.deb
 ANVIL_PRERELEASE= ./scripts/build-deb.sh       # final 0.0.2-1 later
 ```
 
@@ -477,7 +480,7 @@ calculation, `dpkg-deb`, signed APT repo generation, and the verifier.
 | Idle PSS (no workspace) | ~255 MiB | < 300 MiB | Met (PSS) |
 | Full stack with clangd | > 800 MiB RSS | < 300 MiB | Missed |
 | `.deb` size | ~1.35 MiB (0.0.2~pre1: 1.35 MiB) | < 15 MiB | Met |
-| Core/security tests | 55/55 | all | Met |
+| Core/security tests | 68/68 | all | Met |
 
 Details and methodology: `docs/benchmarks.md`. Do not quote these numbers
 without re-measuring on the target machine.
@@ -508,6 +511,12 @@ bundled, with no new network or runtime downloads. Re-measure before shipping
 - Appearance: Anvil Dark, Anvil Light, and Anvil High Contrast themes with
   `auto` system following; UI and editor font family/size, ligatures, and line
   height, persisted in settings. All text pairs pass WCAG AA.
+- Automatic dependency resolution: every `compile_commands.json` in the project
+  and common build layouts is merged; include roots are mounted read-only in the
+  clangd sandbox without manual `includePath` configuration (`/usr/local`,
+  `/opt`, and safe `$HOME` dependency folders). Roots outside those prefixes get
+  a one-click banner that persists `lsp.includePaths`. Sensitive directories
+  (`~/.ssh`, `~/.gnupg`, keyrings, credential stores) are never exposed.
 - Localization: English and Russian UI dictionaries with live switching
   (`Automatic`, English, Русский), typed message keys, pluralization, localized
   dates, and `<html lang>`. Technical diagnostics/logs stay in their original
@@ -691,6 +700,10 @@ extension surface.
 - [x] Font selection (**IMP-004**, owner request, not in the master prompt):
       delivered in 0.0.2 for UI and editor families, sizes, ligatures, and line
       height, with fontconfig enumeration in the shell.
+- [x] Automatic dependency/include resolution (**IMP-006**, owner request):
+      delivered in 0.0.2. Compile databases are merged, safe include roots are
+      mounted read-only automatically, and unresolved roots get a one-click
+      approval banner.
 
 ### 7.6. Release 0.0.2 scope (pulled-forward Phase 4 items)
 
@@ -703,6 +716,7 @@ Theme: **“Make it yours, make it resolve your environment, connect an agent.�
 | IMP-004 | Font selection (UI + editor) | Improvement | Appearance foundation | DONE (0.0.2) | Fonts switch live, persist, fallback safe |
 | IMP-001 | Russian UI localization | Improvement | — | DONE (0.0.2) | Language switch works without restart; all UI strings translated |
 | IMP-003 | Connect Codewhale agent to the AI panel | Improvement | IMP-001 optional | PLANNED | Opt-in prompt/response with streaming; no automatic edits |
+| IMP-006 | Automatic dependency/include resolution | Improvement | — | DONE (0.0.2) | C/C++ projects resolve dependencies with no manual includePath |
 
 **Recommended order:** appearance (IMP-002 + IMP-004) and localization
 (IMP-001) are delivered on `devel/0.0.2`. Next: IMP-005 (user-blocking,
@@ -711,10 +725,10 @@ security review, and a fake-Codewhale transport test).
 
 **0.0.2 exit criteria (all required):**
 
-- [x] IMP-001, IMP-002, IMP-004 meet their acceptance criteria in §9 (delivered
-      on `devel/0.0.2`).
+- [x] IMP-001, IMP-002, IMP-004, IMP-006 meet their acceptance criteria in §9
+      (delivered on `devel/0.0.2`).
 - [ ] IMP-003 and IMP-005 meet their acceptance criteria in §9.
-- [x] `./scripts/test.sh` passes (55/55); new settings validation tests cover
+- [x] `./scripts/test.sh` passes (68/68); new settings validation tests cover
       new external input.
 - [ ] New tests cover the environment profile and the AI transport.
 - [x] `npm run typecheck && npm run build` passes.
@@ -722,7 +736,7 @@ security review, and a fake-Codewhale transport test).
       `npm run check:i18n` (no literal untranslated JSX text).
 - [x] Screenshots in `en` and `ru` exist under `docs/screenshots/0.0.2/`.
 - [x] `./scripts/build-deb.sh` produces a `.deb` under 15 MiB and
-      `./scripts/verify-deb.sh` passes (`0.0.2~pre1-1`, 1.35 MiB, PASS).
+      `./scripts/verify-deb.sh` passes (`0.0.2~pre2-1`, 1.37 MiB, PASS).
 - [ ] Startup and idle memory are not worse than 0.0.1 by more than 10%; record
       the numbers in `docs/benchmarks.md`.
 - [x] `PROJECT.md` statuses and §11 changelog are updated.
@@ -951,7 +965,7 @@ manual sweep of every panel with the language set to Russian.
   screenshots: `docs/screenshots/0.0.2/{ru-light-editor,ru-light-settings,
   en-dark-settings,ru-light-large-font,ru-auto-dark-editor}.png`; the last one
   verifies `ui.language: auto` with `ANVIL_LANG=ru_RU.UTF-8`.
-- `./scripts/test.sh`: 55/55; `npm run typecheck && npm run build`: pass.
+- `./scripts/test.sh`: 68/68; `npm run typecheck && npm run build`: pass.
 
 **Open questions**
 - Should `auto` also consult `LANGUAGE`? (Proposal: yes, after `LC_ALL`.)
@@ -1330,6 +1344,98 @@ banner and resolved diagnostics.
 
 ---
 
+### IMP-006 — Automatic dependency and include resolution
+
+- **Status:** DONE (0.0.2)
+- **Priority:** highest (owner request: "be better than VS Code")
+- **Area:** LSP manager, environment discovery, sandbox, settings, UI
+- **Why:** clangd inside the sandbox only saw `/usr`, the workspace, and its
+  private cache. A project whose dependencies live in `/opt`, `/usr/local`, or a
+  user folder such as `~/deps` reported `'header' file not found` even though
+  `compile_commands.json` named the include directory. VS Code requires manual
+  `includePath` edits in this situation; Anvil must resolve it on its own.
+
+**Goal:** a C/C++ project builds its intelligence without the user configuring
+include paths by hand, while the sandbox keeps protecting secrets and the
+workspace jail.
+
+**In scope**
+- Discover every `compile_commands.json` in the workspace root, `build/`,
+  `out/`, `.build/`, `cmake-build-*`, `build-<name>`, and colcon's
+  `build/<package>/`; merge into one cache copy with absolute
+  `directory`/`file` values; pass it via `--compile-commands-dir`.
+- Extract include roots from `-I`, `-isystem`, `-iquote`, `-idirafter`, and
+  `--include-directory` arguments, resolving relative paths against the entry's
+  directory. Bound the list (32 roots, 8 MiB database, 20k entries).
+- Mount roots read-only in the clangd sandbox automatically when they are under
+  `/usr/local`, `/opt`, or a non-sensitive directory under `$HOME` (deps,
+  SDKs, sibling checkouts, colcon `install/`).
+- Never mount or suggest sensitive paths: `.ssh`, `.gnupg`, `.aws`, `.azure`,
+  `.kube`, `.config`, `.password-store`, `.pki`, browser profiles, `.docker`,
+  `.npm`, `.netrc`, credential/keyring directories.
+- Roots outside those prefixes (for example `/srv`, `/data`, a temporary build
+  tree) produce a banner with one click to allow the exact directory; the
+  choice is persisted in `lsp.includePaths`.
+- `--query-driver` is passed for the compiler recorded in the compile database
+  so clangd can extract GCC/Clang built-in include paths inside the sandbox.
+- The merged database and clangd's background index live in the writable
+  private cache, never in the read-only workspace.
+
+**Out of scope**
+- Running `cmake`, `colcon`, or package managers to generate a compile
+  database (Phase 3).
+- Sourcing shell setup files (that is IMP-005 and stays opt-in).
+- Network or writable access for language servers.
+
+**Security constraints**
+- Include roots are read-only binds; writable paths never change.
+- Project data cannot expose secrets: sensitive components are rejected in the
+  discovery policy and re-validated in the sandbox.
+- `/etc`, `/root`, `/proc`, `/sys`, `/dev`, `/run`, `/boot` are reserved trees
+  and cannot be mounted even through explicit settings.
+- Every mount decision is written to the audit log
+  (`sandbox.include_roots`, `sandbox.include_root_denied`,
+  `environment.sensitive_include_ignored`).
+
+**Acceptance criteria**
+1. A project with `-isystem $HOME/deps/include` in `compile_commands.json` gets
+   hover, completion, and diagnostics with no settings change.
+2. A project whose dependency lives in `/opt` resolves through the normal
+   `/opt` mount; `/usr/local` behaves the same.
+3. A dependency outside those prefixes shows a banner; one click mounts it and
+   restarts clangd; the choice survives a restart.
+4. `-i$HOME/.ssh/...` is never mounted, never suggested, and diagnostics stay
+   unresolved; the audit log records the refusal.
+5. Genuine C++ errors are still reported (include resolution does not mask
+   them).
+6. Relative `-I` paths are resolved against the compile command directory.
+7. No background-index errors appear for a read-only workspace.
+8. `./scripts/test.sh` covers discovery, classification, refusal, and mounts.
+
+**Verification**
+Unit tests (`test_environment.cpp`, `test_sandbox.cpp`), raw clangd
+comparison, live JSON-RPC runs against the dev and packaged cores, and UI
+screenshots.
+
+**Delivered evidence (0.0.2)**
+- `core/src/environment.cpp` + `core/include/anvil/environment.hpp`: database
+  discovery/merge, include extraction, policy classification, query drivers.
+- `core/src/security/sandbox.cpp`: read-only include binds validated by the
+  shared policy; audit events.
+- `core/src/lsp/manager.cpp`: merged database, `--query-driver`, include roots
+  in `SandboxSpec`, `lsp:unresolvedIncludes` event.
+- Settings and IPC validation for `lsp.includePaths` (≤16 absolute paths) and
+  `lsp.queryDriver` (compiler executable).
+- UI: one-click banner (`App.tsx`), C/C++ settings fields and the new strings in
+  `en`/`ru`.
+- Verified: `$HOME` dependency resolves with zero settings; `/tmp` dependency
+  produces the banner and resolves after approval; `~/.ssh` stays refused even
+  when configured; packaged core behaves the same.
+- Screenshots: `docs/screenshots/0.0.2/auto-deps-resolved.png`,
+  `pending-include-banner.png`, `settings-ccpp.png`.
+
+---
+
 ## 10. Working agreement for AI sessions
 
 ### 10.1. Session protocol
@@ -1415,6 +1521,7 @@ A change needs an explicit security note in the PR/summary and tests when it:
 |---|---|---|---|---|
 | 0.0.1 | 2026-11-13 | Phase 1 MVP | C++ editing, clangd intelligence, sandbox, `.deb`, tests, threat model | `anvil_0.0.1-1_amd64.deb` |
 | 0.0.2~pre1 | 2026-11-16 | Personalization + localization pre-release | IMP-001, IMP-002, IMP-004; version single-sourcing | `anvil_0.0.2~pre1-1_amd64.deb` |
+| 0.0.2~pre2 | 2026-11-17 | Dependency intelligence pre-release | IMP-006 automatic include resolution; 68 tests | `anvil_0.0.2~pre2-1_amd64.deb` |
 | 0.0.2 | in progress | Personalization + environment + agent | IMP-003, IMP-005 pending | `anvil_0.0.2-1_amd64.deb` (not built) |
 
 ### 0.0.1 — 2026-11-13
@@ -1429,6 +1536,26 @@ A change needs an explicit security note in the PR/summary and tests when it:
   diagnostics; bubblewrap + seccomp isolation; fail-closed release path.
 - 51 tests; `.deb` with SBOM, threat model, AppStream, bwrap AppArmor profile,
   signed local APT repo.
+
+### 0.0.2~pre2 — 2026-11-17 (pre-release package)
+
+Installable pre-release: `dist/anvil_0.0.2~pre2-1_amd64.deb` (1.37 MiB,
+`PASS` from `scripts/verify-deb.sh`, including a GUI smoke test from the
+extracted package). Release notes: `docs/releases/v0.0.2-pre2.md`.
+
+Delivered:
+
+- **IMP-006 Automatic dependency and include resolution.** Merged compile
+  databases, automatic read-only include mounts for `/usr/local`, `/opt`, and
+  safe `$HOME` dependency folders, one-click approval for other prefixes,
+  `--query-driver`, secret-path denylist, background index moved to the
+  writable cache.
+- New settings `lsp.includePaths` and `lsp.queryDriver`; `lsp:unresolvedIncludes`
+  event; C/C++ settings UI and bilingual strings.
+- Tests: 68/68, including environment discovery, classification, secret
+  refusal, and sandbox mount checks.
+- Verified with the packaged core: an external `$HOME` dependency resolves
+  with zero configuration.
 
 ### 0.0.2~pre1 — 2026-11-16 (pre-release package)
 
@@ -1460,7 +1587,8 @@ Delivered:
 - Debian pre-release versioning: `0.0.2~pre1-1` sorts before the future
   `0.0.2-1`, so `apt install` upgrades cleanly to the final release.
 - Not started: IMP-003 (Codewhale, needs ADR/security review) and IMP-005
-  (ROS 2 environment, needs owner answers on distro/workspace policy).
+  (ROS 2 setup.bash profiles, needs owner answers on distro/workspace policy).
+  IMP-006 covers the general include-resolution case those projects need.
 
 ---
 
@@ -1475,7 +1603,8 @@ Delivered:
 | `docs/RELEASE-CHECKLIST.md` | Per-release checklist status for 0.0.1 |
 | `docs/adr/0001-native-cpp-shell.md` | Why the shell is C++ WebKitGTK, not Tauri |
 | `docs/releases/v0.0.1.md` | Release notes for 0.0.1 (also used on GitHub) |
-| `docs/releases/v0.0.2-pre1.md` | Release notes for the 0.0.2 pre-release |
+| `docs/releases/v0.0.2-pre1.md` | Release notes for the 0.0.2~pre1 pre-release |
+| `docs/releases/v0.0.2-pre2.md` | Release notes for the 0.0.2~pre2 pre-release |
 | `prompts/masterprompt_0.0.1.md` | Original product specification (historical) |
 
 If a reference document and this file disagree about **current status, scope, or

@@ -28,6 +28,8 @@ A standalone process with no GUI dependency. It owns:
 - settings, recent projects, and workspace tab state;
 - LSP lifecycle, document synchronisation, diagnostics, hover, completion,
   definition, references, signature help, rename, and formatting requests;
+- compile-database discovery/merge, include-root classification for the
+  language-server sandbox, and compiler (`--query-driver`) detection;
 - bubblewrap/seccomp sandbox construction and process supervision;
 - security logging and redaction;
 - JSON-RPC validation and dispatch.
@@ -107,7 +109,13 @@ validator in `core/src/ipc/validate.cpp`; tests live in
 3. The UI calls `fs/read`; the core resolves the relative path, rejects symlink
    escapes, enforces size/UTF-8 limits, and returns content plus mtime.
 4. Monaco creates a model; the UI sends `lsp/didOpen`.
-5. The core starts clangd in the sandbox on demand and forwards the document.
+5. The core merges every `compile_commands.json` it finds into the private
+   cache, derives include roots, and starts clangd in the sandbox with
+   `--compile-commands-dir` and `--query-driver`. Include roots under
+   `/usr/local`, `/opt`, and safe `$HOME` directories are mounted read-only
+   automatically; other roots produce `lsp:unresolvedIncludes` for one-click
+   approval.
+6. The document is forwarded and intelligence becomes available.
 
 ### Hover / definition / diagnostics
 
@@ -141,7 +149,7 @@ validator in `core/src/ipc/validate.cpp`; tests live in
 - Strict CSP, local assets only, no network, no remote navigation, no
   telemetry.
 - Audit log in JSON Lines under the user's config directory.
-- No secrets are stored in 0.0.1.
+- No secrets are stored in 0.0.1 or 0.0.2.
 
 See `docs/security/threat-model.md` for the full analysis.
 
@@ -170,7 +178,7 @@ See `docs/security/threat-model.md` for the full analysis.
   payloads are bounded.
 - Release builds use LTO, `-Os`/`-O2`, `--gc-sections`, and stripped binaries.
 
-## 7. Deliberate 0.0.1 omissions
+## 7. Deliberate 0.0.1 omissions (unchanged in 0.0.2)
 
 - Build/run integration, PTY terminal, DAP, Git writes, AI, plugins, and
   auto-update are not implemented. Their panels and the run configuration

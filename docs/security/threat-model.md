@@ -245,7 +245,7 @@ unsandboxed fallback.
 
 ## 6. Security test coverage
 
-The test suite (`core/tests`, 55 cases) covers:
+The test suite (`core/tests`, 68 cases) covers:
 
 - every IPC validator: malformed types, unknown fields, missing fields,
   oversized payloads, traversal, absolute paths, NUL/control characters,
