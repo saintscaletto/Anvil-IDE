@@ -42,6 +42,7 @@ const allowedText = new Set([
   "bubblewrap",
   "clangd or /usr/bin/clangd-18",
   "--background-index",
+  "/opt/sdk/include",
 ]);
 
 function allowed(value) {

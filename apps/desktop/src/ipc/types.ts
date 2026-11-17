@@ -180,12 +180,25 @@ export interface Settings {
   "lsp.clangdPath": string;
   "lsp.clangdArgs": string[];
   "lsp.enableProjectConfig": boolean;
+  "lsp.includePaths": string[];
+  "lsp.queryDriver": string;
   "security.allowUnsandboxedLsp": boolean;
   "explorer.hideGit": boolean;
   "ui.theme": ThemePreference;
   "ui.fontFamily": string;
   "ui.fontSize": number;
   "ui.language": LanguagePreference;
+}
+
+export interface IncludeCandidate {
+  root: string;
+  include: string;
+}
+
+export interface UnresolvedIncludesPayload {
+  languageId: string;
+  path: string;
+  candidates: IncludeCandidate[];
 }
 
 export interface FontFamilyInfo {

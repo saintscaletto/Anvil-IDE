@@ -274,6 +274,18 @@ export const ru: Record<MessageKey, string> = {
   "settings.hideGit": "Скрывать .git в проводнике",
   "settings.formatNote":
     "Форматирование при сохранении и другие языковые возможности появятся на фазе 2. В этом релизе форматирование никогда не применяется молча.",
+  "lsp.unresolvedTitle": "Часть заголовков не найдена",
+  "lsp.unresolvedBody":
+      "«{include}» найден в {root}, но эта папка не видна внутри песочницы. Разрешить доступ только на чтение и перезапустить clangd?",
+  "lsp.allowRoot": "Разрешить {root}",
+  "settings.includePaths": "Дополнительные каталоги заголовков (по одному в строке)",
+  "settings.includePathsNote":
+      "Каталоги зависимостей из compile_commands.json подключаются автоматически только для чтения. Добавляйте сюда лишь то, что не удалось определить.",
+  "settings.includePathInvalid": "Нужны существующие абсолютные каталоги.",
+  "settings.queryDriver": "Компилятор для системных заголовков",
+  "settings.queryDriverPlaceholder": "Автоматически (из compile_commands.json)",
+  "settings.queryDriverNote":
+      "clangd опрашивает этот компилятор о встроенных путях заголовков. Оставьте пустым, чтобы использовать компилятор из compile_commands.json.",
   "settings.languageServer": "Языковой сервер C/C++",
   "settings.clangdPath": "Путь к clangd",
   "settings.clangdArgs": "Дополнительные аргументы clangd (по одному в строке)",

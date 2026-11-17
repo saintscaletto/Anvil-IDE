@@ -305,6 +305,44 @@ function SettingsModal() {
           />
         </label>
         <div className="setting-note">{t("settings.projectConfigNote")}</div>
+        <label className="setting-row column">
+          <span>{t("settings.includePaths")}</span>
+          <textarea
+            key={values["lsp.includePaths"].join("\n")}
+            defaultValue={values["lsp.includePaths"].join("\n")}
+            rows={3}
+            placeholder="/opt/sdk/include"
+            onBlur={(event) => {
+              const paths = event.target.value
+                .split("\n")
+                .map((line) => line.trim())
+                .filter(Boolean);
+              if (paths.join("\n") === values["lsp.includePaths"].join("\n")) return;
+              if (paths.some((path) => !path.startsWith("/"))) {
+                useUiStore.getState().toast("error", t("settings.includePathInvalid"));
+                return;
+              }
+              void setValue("lsp.includePaths", paths.slice(0, 16));
+            }}
+          />
+        </label>
+        <div className="setting-note">{t("settings.includePathsNote")}</div>
+        <label className="setting-row column">
+          <span>{t("settings.queryDriver")}</span>
+          <input
+            key={`query-driver-${values["lsp.queryDriver"]}`}
+            type="text"
+            defaultValue={values["lsp.queryDriver"]}
+            placeholder={t("settings.queryDriverPlaceholder")}
+            onBlur={(event) => {
+              const value = event.target.value.trim();
+              if (value !== values["lsp.queryDriver"]) {
+                void setValue("lsp.queryDriver", value);
+              }
+            }}
+          />
+        </label>
+        <div className="setting-note">{t("settings.queryDriverNote")}</div>
         <div className="settings-inline">
           <button
             type="button"

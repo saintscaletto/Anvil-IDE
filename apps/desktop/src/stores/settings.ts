@@ -16,6 +16,8 @@ export const defaultSettings: Settings = {
   "lsp.clangdPath": "clangd",
   "lsp.clangdArgs": [],
   "lsp.enableProjectConfig": false,
+  "lsp.includePaths": [],
+  "lsp.queryDriver": "",
   "security.allowUnsandboxedLsp": false,
   "explorer.hideGit": true,
   "ui.theme": "dark",

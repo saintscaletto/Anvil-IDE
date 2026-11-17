@@ -271,6 +271,18 @@ export const en = {
   "settings.hideGit": "Hide .git in Explorer",
   "settings.formatNote":
     "Format-on-save and other language features arrive in Phase 2. Formatting is never applied silently in this release.",
+  "lsp.unresolvedTitle": "Some headers are not resolved",
+  "lsp.unresolvedBody":
+      "“{include}” was found in {root}, but that folder is not visible inside the sandbox. Allow read-only access and restart clangd?",
+  "lsp.allowRoot": "Allow {root}",
+  "settings.includePaths": "Additional include paths (one per line)",
+  "settings.includePathsNote":
+      "Dependency folders referenced by compile_commands.json are mounted read-only automatically. Add paths here only for folders that cannot be detected.",
+  "settings.includePathInvalid": "Include paths must be existing absolute directories.",
+  "settings.queryDriver": "Compiler for system includes",
+  "settings.queryDriverPlaceholder": "Automatic (from compile_commands.json)",
+  "settings.queryDriverNote":
+      "clangd queries this compiler for its built-in include paths. Leave empty to use the compiler recorded in compile_commands.json.",
   "settings.languageServer": "C/C++ language server",
   "settings.clangdPath": "clangd path",
   "settings.clangdArgs": "Extra clangd arguments (one per line)",

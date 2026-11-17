@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import type { LspDiagnostic, LspStatusPayload } from "../ipc/types";
+import type {
+  IncludeCandidate,
+  LspDiagnostic,
+  LspStatusPayload,
+} from "../ipc/types";
 import { AnvilError } from "../ipc/bridge";
 import { useUiStore } from "./ui";
 import { useCoreStore } from "./core";
@@ -9,12 +13,14 @@ interface LspState {
   statuses: Record<string, LspStatusPayload>;
   diagnostics: Record<string, LspDiagnostic[]>;
   progress: { languageId: string; percentage?: number; title?: string } | null;
+  unresolved: { path: string; candidates: IncludeCandidate[] } | null;
   failureNotified: boolean;
   setStatus: (payload: LspStatusPayload) => void;
   setDiagnostics: (path: string, diagnostics: LspDiagnostic[]) => void;
   clearDiagnostics: (path: string) => void;
   reset: () => void;
   setProgress: (progress: LspState["progress"]) => void;
+  setUnresolved: (unresolved: LspState["unresolved"]) => void;
   handleFailure: (error: unknown) => void;
 }
 
@@ -22,6 +28,7 @@ export const useLspStore = create<LspState>((set, get) => ({
   statuses: {},
   diagnostics: {},
   progress: null,
+  unresolved: null,
   failureNotified: false,
   setStatus: (payload) =>
     set((state) => ({
@@ -37,8 +44,16 @@ export const useLspStore = create<LspState>((set, get) => ({
       delete diagnostics[path];
       return { diagnostics };
     }),
-  reset: () => set({ statuses: {}, diagnostics: {}, progress: null, failureNotified: false }),
+  reset: () =>
+    set({
+      statuses: {},
+      diagnostics: {},
+      progress: null,
+      unresolved: null,
+      failureNotified: false,
+    }),
   setProgress: (progress) => set({ progress }),
+  setUnresolved: (unresolved) => set({ unresolved }),
   handleFailure: (error) => {
     const message =
       error instanceof AnvilError

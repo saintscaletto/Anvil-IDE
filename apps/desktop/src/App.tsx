@@ -30,8 +30,8 @@ import { useSettingsStore } from "./stores/settings";
 import { useUiStore } from "./stores/ui";
 import { useWorkspaceStore } from "./stores/workspace";
 import { useShortcuts } from "./hooks/useShortcuts";
-import { ShieldIcon, WarningIcon } from "./components/Icons";
-import { requestCloseApp, restartCore } from "./actions";
+import { CloseIcon, ShieldIcon, WarningIcon } from "./components/Icons";
+import { requestCloseApp, restartCore, restartLanguageServer } from "./actions";
 import {
   I18nProvider,
   resolveLocale,
@@ -65,6 +65,7 @@ export function App() {
   const activeTab = tabs.find((tab) => tab.path === activePath);
   const watcherAvailable = useWorkspaceStore((state) => state.watcherAvailable);
   const workspaceRoot = useWorkspaceStore((state) => state.root);
+  const unresolvedInclude = useLspStore((state) => state.unresolved);
   const settingsValues = useSettingsStore((state) => state.values);
   const themePreference = settingsValues["ui.theme"];
   const locale = resolveLocale(settingsValues["ui.language"], boot.locale);
@@ -116,6 +117,37 @@ export function App() {
           : [];
         useLspStore.getState().setDiagnostics(payload.path, diagnostics);
         applyDiagnostics(payload.path, diagnostics);
+        const unresolved = useLspStore.getState().unresolved;
+        if (unresolved && unresolved.path === payload.path) {
+          const stillMissing = diagnostics.some((diagnostic) =>
+            diagnostic.message.includes("file not found"),
+          );
+          if (!stillMissing) useLspStore.getState().setUnresolved(null);
+        }
+      }),
+    );
+    unsubscribers.push(
+      bridge.on("lsp:unresolvedIncludes", (params) => {
+        const payload = asRecord(params);
+        const candidates = Array.isArray(payload?.["candidates"])
+          ? payload["candidates"]
+              .map((candidate) => asRecord(candidate))
+              .filter((candidate): candidate is Record<string, unknown> => candidate !== null)
+              .filter(
+                (candidate) =>
+                  typeof candidate["root"] === "string" &&
+                  typeof candidate["include"] === "string",
+              )
+              .map((candidate) => ({
+                root: candidate["root"] as string,
+                include: candidate["include"] as string,
+              }))
+          : [];
+        if (candidates.length === 0) return;
+        useLspStore.getState().setUnresolved({
+          path: typeof payload?.["path"] === "string" ? payload["path"] : "",
+          candidates,
+        });
       }),
     );
     unsubscribers.push(
@@ -334,6 +366,14 @@ export function App() {
     void api.shellSetTitle(title).catch(() => undefined);
   }, [activeName, workspaceName, locale]);
 
+  const allowIncludeRoot = async (root: string) => {
+    const current = useSettingsStore.getState().values["lsp.includePaths"];
+    const next = current.includes(root) ? current : [...current, root].slice(0, 16);
+    await useSettingsStore.getState().setValue("lsp.includePaths", next);
+    useLspStore.getState().setUnresolved(null);
+    await restartLanguageServer();
+  };
+
   if (!nativeBridgeAvailable) {
     return (
       <div className="native-required">
@@ -393,6 +433,40 @@ export function App() {
         <div className="watcher-banner" role="status">
           <ShieldIcon size={13} />
           {translate(locale, "app.watcherBanner")}
+        </div>
+      ) : null}
+      {unresolvedInclude ? (
+        <div className="include-banner" role="status">
+          <WarningIcon size={14} />
+          <div className="include-banner-text">
+            <strong>{translate(locale, "lsp.unresolvedTitle")}</strong>
+            <span>
+              {translate(locale, "lsp.unresolvedBody", {
+                include: unresolvedInclude.candidates[0]?.include ?? "",
+                root: unresolvedInclude.candidates[0]?.root ?? "",
+              })}
+            </span>
+          </div>
+          <div className="include-banner-actions">
+            {unresolvedInclude.candidates.map((candidate) => (
+              <button
+                type="button"
+                className="banner-action"
+                key={candidate.root}
+                onClick={() => void allowIncludeRoot(candidate.root)}
+              >
+                {translate(locale, "lsp.allowRoot", { root: candidate.root })}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="banner-dismiss"
+              aria-label={translate(locale, "common.dismiss")}
+              onClick={() => useLspStore.getState().setUnresolved(null)}
+            >
+              <CloseIcon size={12} />
+            </button>
+          </div>
         </div>
       ) : null}
       <CommandPalette />
