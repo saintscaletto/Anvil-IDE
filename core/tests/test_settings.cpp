@@ -6,6 +6,7 @@
 namespace {
 
 using anvil::ApiError;
+using anvil::Json;
 using anvil::Settings;
 
 TEST(Settings, DefaultsAndPersistence) {
@@ -85,6 +86,26 @@ TEST(Settings, IgnoresInvalidPersistedValues) {
     EXPECT_EQ(values["editor.lineHeight"], "normal");
     // Valid keys in a partially invalid file still load.
     EXPECT_EQ(values["editor.fontLigatures"], false);
+}
+
+TEST(Settings, IncludePathsAndQueryDriver) {
+    anvil::test::TempDir temp;
+    Settings settings;
+    settings.load(temp.path() / "config");
+
+    settings.set("lsp.includePaths", Json::array({"/opt/sdk/include", "/usr/local/include"}));
+    EXPECT_EQ(settings.include_paths().size(), 2U);
+
+    settings.set("lsp.queryDriver", "/usr/bin/c++");
+    EXPECT_EQ(settings.query_driver(), "/usr/bin/c++");
+    settings.set("lsp.queryDriver", "");
+    EXPECT_EQ(settings.query_driver(), "");
+
+    EXPECT_THROW(settings.set("lsp.includePaths", Json::array({"relative/path"})), ApiError);
+    EXPECT_THROW(settings.set("lsp.includePaths", Json::array({"/"})), ApiError);
+    EXPECT_THROW(settings.set("lsp.includePaths", "not-an-array"), ApiError);
+    EXPECT_THROW(settings.set("lsp.queryDriver", "/usr/bin/notacompiler"), ApiError);
+    EXPECT_THROW(settings.set("lsp.queryDriver", 42), ApiError);
 }
 
 TEST(Settings, FontFamilyValidation) {

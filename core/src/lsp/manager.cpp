@@ -6,9 +6,11 @@
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
+#include <set>
 #include <system_error>
 #include <utility>
 
+#include "anvil/environment.hpp"
 #include "anvil/lsp/uri.hpp"
 #include "anvil/security/sandbox.hpp"
 #include "anvil/util/fs_util.hpp"
@@ -34,6 +36,7 @@ struct Manager::State {
     std::string server_version;
     std::string binary;
     std::unordered_map<std::string, int> documents;
+    environment::Resolution resolution;
     std::chrono::steady_clock::time_point last_activity = std::chrono::steady_clock::now();
 };
 
@@ -55,18 +58,6 @@ std::string language_family_for_path(const std::string& path) {
         return "cpp";
     }
     return {};
-}
-
-std::optional<fs::path> find_compile_commands(const fs::path& root) {
-    for (const char* relative : {"", "build", "cmake-build-debug", "cmake-build-release",
-                                 "out", "build/Debug", "build/Release"}) {
-        const fs::path directory = relative[0] == '\0' ? root : root / relative;
-        std::error_code ec;
-        if (fs::is_regular_file(directory / "compile_commands.json", ec)) {
-            return directory;
-        }
-    }
-    return std::nullopt;
 }
 
 std::string discover_clangd(const Settings& settings) {
@@ -273,18 +264,50 @@ std::shared_ptr<Manager::State> Manager::ensure_started(const std::string& famil
         const std::string root = workspace_.root_string();
         const std::string program = discover_clangd(settings_);
 
+        const fs::path cache = cache_dir_ / "lsp" / workspace_.state_key() / family;
+        fsutil::ensure_private_directory(cache);
+
+        // Merge every compile_commands.json found in known build layouts into
+        // one cache copy and derive the include roots and compiler drivers the
+        // project actually uses. This is data transformation only.
+        environment::Resolution resolution = environment::resolve(
+            root, cache / "compile_commands", settings_.include_paths());
+
         std::vector<std::string> arguments{"--background-index", "--log=error"};
-        if (const auto compile_dir = find_compile_commands(root); compile_dir.has_value()) {
-            arguments.push_back("--compile-commands-dir=" + compile_dir->string());
+        if (!resolution.compile_commands_dir.empty()) {
+            arguments.push_back("--compile-commands-dir=" +
+                                resolution.compile_commands_dir.string());
+        }
+        std::vector<std::string> drivers = resolution.query_drivers;
+        const std::string configured_driver = settings_.query_driver();
+        if (!configured_driver.empty()) {
+            std::error_code driver_ec;
+            if (fs::is_regular_file(configured_driver, driver_ec) &&
+                ::access(configured_driver.c_str(), X_OK) == 0) {
+                drivers.insert(drivers.begin(), configured_driver);
+            } else {
+                logging::warn("lsp.queryDriver is not executable: " + configured_driver);
+            }
+        }
+        if (!drivers.empty()) {
+            arguments.push_back("--query-driver=" + strings::join(drivers, ","));
         }
         if (!settings_.enable_project_config()) {
             arguments.push_back("--enable-config=false");
         }
         const auto user_args = settings_.clangd_args();
         arguments.insert(arguments.end(), user_args.begin(), user_args.end());
-
-        const fs::path cache = cache_dir_ / "lsp" / workspace_.state_key() / family;
-        fsutil::ensure_private_directory(cache);
+        logging::info("compile database: " +
+                      (resolution.compile_commands_dir.empty()
+                           ? std::string("none")
+                           : resolution.compile_commands_dir.string()) +
+                      " (" + std::to_string(resolution.entry_count) + " entries, " +
+                      std::to_string(resolution.automatic_include_roots.size()) +
+                      " automatic include roots, " +
+                      std::to_string(resolution.configured_include_roots.size()) +
+                      " configured roots, " +
+                      std::to_string(resolution.pending_include_roots.size()) +
+                      " pending roots)");
 
         security::SandboxSpec sandbox;
         sandbox.workspace = root;
@@ -292,6 +315,12 @@ std::shared_ptr<Manager::State> Manager::ensure_started(const std::string& famil
         sandbox.cache_dir = cache;
         sandbox.allow_network = false;
         sandbox.allow_exec = false;
+        for (const auto& include_root : resolution.automatic_include_roots) {
+            sandbox.automatic_include_roots.emplace_back(include_root);
+        }
+        for (const auto& include_root : resolution.configured_include_roots) {
+            sandbox.configured_include_roots.emplace_back(include_root);
+        }
 
         bool dev_unsafe = false;
 #if ANVIL_DEV_MODE
@@ -368,6 +397,7 @@ std::shared_ptr<Manager::State> Manager::ensure_started(const std::string& famil
             state->server_name = server_name;
             state->server_version = server_version;
             state->binary = program;
+            state->resolution = std::move(resolution);
             state->starting = false;
             state->last_activity = std::chrono::steady_clock::now();
             state->cv.notify_all();
@@ -776,6 +806,9 @@ void Manager::handle_notification(const std::shared_ptr<State>& state,
             payload["version"] = params["version"];
         }
         emit("lsp:diagnostics", std::move(payload));
+        if (params.contains("diagnostics") && params["diagnostics"].is_array()) {
+            emit_unresolved_includes(state, *path, params["diagnostics"]);
+        }
         return;
     }
     if (method == "window/showMessage") {
@@ -903,4 +936,44 @@ void Manager::janitor_loop(const std::stop_token& stop_token) {
     }
 }
 
+// clangd reports a missing header as "'path/to/header' file not found".
+std::optional<std::string> missing_include_from_message(const std::string& message) {
+    constexpr std::string_view suffix = "' file not found";
+    if (!strings::ends_with(message, suffix)) return std::nullopt;
+    const std::size_t close = message.size() - suffix.size();
+    if (close == 0 || message[close] != '\'') return std::nullopt;
+    const std::size_t open = message.rfind('\'', close - 1);
+    if (open == std::string::npos || open + 1 >= close) return std::nullopt;
+    return message.substr(open + 1, close - open - 1);
+}
+
+void Manager::emit_unresolved_includes(const std::shared_ptr<State>& state,
+                                       const std::string& path, const Json& diagnostics) {
+    std::vector<std::string> pending;
+    {
+        std::lock_guard lock(state->mutex);
+        pending = state->resolution.pending_include_roots;
+    }
+    if (pending.empty()) return;
+
+    Json candidates = Json::array();
+    std::set<std::string> reported;
+    for (const auto& diagnostic : diagnostics) {
+        if (candidates.size() >= 5 || !diagnostic.is_object()) break;
+        if (!diagnostic.contains("message") || !diagnostic["message"].is_string()) continue;
+        const auto include = missing_include_from_message(diagnostic["message"].get<std::string>());
+        if (!include.has_value()) continue;
+        for (const auto& root : pending) {
+            if (candidates.size() >= 5) break;
+            std::error_code ec;
+            if (!fs::is_regular_file(fs::path(root) / *include, ec)) continue;
+            const std::string key = root + '\n' + *include;
+            if (!reported.insert(key).second) continue;
+            candidates.push_back(Json{{"root", root}, {"include", *include}});
+        }
+    }
+    if (candidates.empty()) return;
+    emit("lsp:unresolvedIncludes",
+         Json{{"languageId", state->family}, {"path", path}, {"candidates", candidates}});
+}
 }  // namespace anvil::lsp

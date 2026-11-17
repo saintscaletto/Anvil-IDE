@@ -3,6 +3,7 @@
 #include <cctype>
 #include <utility>
 
+#include "anvil/environment.hpp"
 #include "anvil/util/fs_util.hpp"
 #include "anvil/util/log.hpp"
 #include "anvil/util/strings.hpp"
@@ -27,6 +28,8 @@ constexpr const char* kEditorFontFamily = "editor.fontFamily";
 constexpr const char* kEditorFontLigatures = "editor.fontLigatures";
 constexpr const char* kEditorLineHeight = "editor.lineHeight";
 constexpr const char* kUiLanguage = "ui.language";
+constexpr const char* kIncludePaths = "lsp.includePaths";
+constexpr const char* kQueryDriver = "lsp.queryDriver";
 
 bool is_known_key(const std::string& key) {
     return key == kFontSize || key == kTabSize || key == kWordWrap || key == kMinimap ||
@@ -34,7 +37,8 @@ bool is_known_key(const std::string& key) {
            key == kEnableProjectConfig || key == kAllowUnsandboxedLsp || key == kHideGit ||
            key == kUiTheme || key == kUiFontFamily || key == kUiFontSize ||
            key == kEditorFontFamily || key == kEditorFontLigatures ||
-           key == kEditorLineHeight || key == kUiLanguage;
+           key == kEditorLineHeight || key == kUiLanguage || key == kIncludePaths ||
+           key == kQueryDriver;
 }
 
 int bounded_int(const Json& value, int fallback, int min_value, int max_value) {
@@ -121,6 +125,8 @@ void Settings::reset_defaults() {
         {kEditorFontLigatures, true},
         {kEditorLineHeight, "normal"},
         {kUiLanguage, "auto"},
+        {kIncludePaths, Json::array()},
+        {kQueryDriver, ""},
     };
 }
 
@@ -246,6 +252,31 @@ void Settings::validate_assignment(const std::string& key, const Json& value) co
         if (!is_valid_language_preference(value.get<std::string>())) {
             throw ApiError(ErrorCode::InvalidParams, "Invalid ui.language");
         }
+    } else if (key == kIncludePaths) {
+        if (!value.is_array() || value.size() > 16) {
+            throw ApiError(ErrorCode::InvalidParams,
+                           "lsp.includePaths must be an array of at most 16 paths");
+        }
+        for (const auto& item : value) {
+            if (!item.is_string()) {
+                throw ApiError(ErrorCode::InvalidParams,
+                               "lsp.includePaths entries must be strings");
+            }
+            std::string reason;
+            if (!environment::is_valid_include_path(item.get<std::string>(), &reason)) {
+                throw ApiError(ErrorCode::InvalidParams,
+                               "Invalid lsp.includePaths entry: " + reason);
+            }
+        }
+    } else if (key == kQueryDriver) {
+        if (!value.is_string()) {
+            throw ApiError(ErrorCode::InvalidParams, "lsp.queryDriver must be a string");
+        }
+        std::string reason;
+        if (!environment::is_valid_query_driver(value.get<std::string>(), &reason)) {
+            throw ApiError(ErrorCode::InvalidParams,
+                           "Invalid lsp.queryDriver: " + reason);
+        }
     }
 }
 
@@ -360,6 +391,16 @@ std::string Settings::editor_line_height() const {
 std::string Settings::ui_language() const {
     std::lock_guard lock(mutex_);
     return string_or(values_.value(kUiLanguage, Json("auto")), "auto");
+}
+
+std::vector<std::string> Settings::include_paths() const {
+    std::lock_guard lock(mutex_);
+    return string_array_or(values_.value(kIncludePaths, Json::array()));
+}
+
+std::string Settings::query_driver() const {
+    std::lock_guard lock(mutex_);
+    return string_or(values_.value(kQueryDriver, Json("")), "");
 }
 
 std::filesystem::path Settings::file_path() const {

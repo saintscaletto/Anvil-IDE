@@ -5,6 +5,7 @@ add_executable(anvil_fake_lsp fake_lsp_server.cpp)
 target_link_libraries(anvil_fake_lsp PRIVATE anvil_core_lib)
 
 add_executable(anvil_core_tests
+    test_environment.cpp
     test_fs_util.cpp
     test_jsonrpc.cpp
     test_line_reader.cpp

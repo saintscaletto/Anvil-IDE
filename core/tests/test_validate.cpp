@@ -225,6 +225,32 @@ TEST(Validate, WorkspaceAndSettings) {
                       Json{{"key", "ui.language"}, {"value", 42}});
               }),
               ErrorCode::InvalidParams);
+
+    EXPECT_EQ(validate::parse_settings_set(
+                  Json{{"key", "lsp.includePaths"},
+                       {"value", Json::array({"/opt/sdk/include"})}})
+                  .value.size(),
+              1U);
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "lsp.includePaths"},
+                           {"value", Json::array({"relative"})}});
+              }),
+              ErrorCode::InvalidParams);
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "lsp.includePaths"}, {"value", "nope"}});
+              }),
+              ErrorCode::InvalidParams);
+    EXPECT_EQ(validate::parse_settings_set(
+                  Json{{"key", "lsp.queryDriver"}, {"value", "/usr/bin/c++"}})
+                  .value.get<std::string>(),
+              "/usr/bin/c++");
+    EXPECT_EQ(error_code([] {
+                  validate::parse_settings_set(
+                      Json{{"key", "lsp.queryDriver"}, {"value", "/usr/bin/true"}});
+              }),
+              ErrorCode::InvalidParams);
     EXPECT_EQ(error_code([] {
                   validate::parse_settings_set(
                       Json{{"key", "editor.fontLigatures"}, {"value", "yes"}});

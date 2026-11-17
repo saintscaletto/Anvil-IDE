@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 
+#include "anvil/environment.hpp"
 #include "anvil/settings.hpp"
 #include "anvil/util/strings.hpp"
 
@@ -427,6 +428,33 @@ SettingsSet parse_settings_set(const Json& params) {
         if (!out.value.is_string() ||
             !anvil::is_valid_line_height_mode(out.value.get<std::string>())) {
             throw ApiError(ErrorCode::InvalidParams, "Invalid editor.lineHeight");
+        }
+    } else if (out.key == "lsp.includePaths") {
+        if (!out.value.is_array() || out.value.size() > 16) {
+            throw ApiError(ErrorCode::InvalidParams,
+                           "lsp.includePaths must be an array of at most 16 paths");
+        }
+        for (const auto& item : out.value) {
+            if (!item.is_string()) {
+                throw ApiError(ErrorCode::InvalidParams,
+                               "lsp.includePaths entries must be strings");
+            }
+            std::string reason;
+            if (!anvil::environment::is_valid_include_path(item.get<std::string>(),
+                                                           &reason)) {
+                throw ApiError(ErrorCode::InvalidParams,
+                               "Invalid lsp.includePaths entry: " + reason);
+            }
+        }
+    } else if (out.key == "lsp.queryDriver") {
+        if (!out.value.is_string()) {
+            throw ApiError(ErrorCode::InvalidParams, "lsp.queryDriver must be a string");
+        }
+        std::string reason;
+        if (!anvil::environment::is_valid_query_driver(out.value.get<std::string>(),
+                                                       &reason)) {
+            throw ApiError(ErrorCode::InvalidParams,
+                           "Invalid lsp.queryDriver: " + reason);
         }
     } else if (out.key == "ui.language") {
         if (!out.value.is_string() ||

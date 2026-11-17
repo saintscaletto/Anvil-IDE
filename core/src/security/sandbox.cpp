@@ -18,6 +18,7 @@
 #include <system_error>
 #include <utility>
 
+#include "anvil/environment.hpp"
 #include "anvil/error.hpp"
 #include "anvil/util/fs_util.hpp"
 #include "anvil/util/log.hpp"
@@ -278,6 +279,39 @@ void prepare_cache_dir(const fs::path& cache_dir) {
     }
 }
 
+// Read-only include roots are a deliberate exception to the sandbox's
+// otherwise fixed mount set. The policy lives in anvil::environment so the
+// discovery and the sandbox agree; secrets and system internals stay denied.
+std::vector<std::string> validate_include_roots(const std::vector<fs::path>& requested,
+                                                bool configured, const fs::path& workspace,
+                                                const fs::path& cache_dir) {
+    constexpr std::size_t kMaxRoots = 32;
+    std::vector<std::string> accepted;
+    std::set<std::string> seen;
+    for (const auto& requested_path : requested) {
+        if (accepted.size() >= kMaxRoots) break;
+        std::error_code ec;
+        const fs::path canonical = fs::canonical(requested_path, ec);
+        if (ec || !fs::is_directory(canonical, ec)) {
+            logging::warn("include root is not an accessible directory: " +
+                          requested_path.string());
+            continue;
+        }
+        if (!environment::is_mountable_include_root(canonical, configured, workspace,
+                                                    cache_dir)) {
+            logging::warn("include root was refused by policy: " + canonical.string());
+            continue;
+        }
+        // /usr is already mounted read-only as a whole.
+        if (has_prefix(canonical, "/usr") && !has_prefix(canonical, "/usr/local")) {
+            continue;
+        }
+        if (!seen.insert(canonical.string()).second) continue;
+        accepted.push_back(canonical.string());
+    }
+    return accepted;
+}
+
 int create_seccomp_memfd(const SeccompProgram& seccomp) {
     const int fd = static_cast<int>(
         ::syscall(SYS_memfd_create, "anvil-seccomp", MFD_CLOEXEC));
@@ -424,6 +458,21 @@ SandboxCommand build_sandbox_command(const SandboxSpec& spec, const SeccompProgr
     }
     command.argv.insert(command.argv.end(),
                         {"--bind", spec.cache_dir.string(), spec.cache_dir.string()});
+    std::error_code cache_ec;
+    const fs::path cache = fs::canonical(spec.cache_dir, cache_ec);
+    std::vector<std::string> accepted_include_roots = validate_include_roots(
+        spec.automatic_include_roots, false, workspace, cache_ec ? fs::path() : cache);
+    for (const auto& root :
+         validate_include_roots(spec.configured_include_roots, true, workspace,
+                                cache_ec ? fs::path() : cache)) {
+        if (std::find(accepted_include_roots.begin(), accepted_include_roots.end(), root) ==
+            accepted_include_roots.end()) {
+            accepted_include_roots.push_back(root);
+        }
+    }
+    for (const auto& root : accepted_include_roots) {
+        command.argv.insert(command.argv.end(), {"--ro-bind", root, root});
+    }
     if (!spec.allow_network && availability.network_namespace) {
         command.argv.push_back("--unshare-net");
     }
@@ -448,6 +497,7 @@ SandboxCommand build_sandbox_command(const SandboxSpec& spec, const SeccompProgr
                                  {"workspace", workspace.string()},
                                  {"networkNamespace", availability.network_namespace},
                                  {"writablePaths", writable},
+                                 {"includeRoots", accepted_include_roots},
                                  {"execAllowed", spec.allow_exec}});
     return command;
 }

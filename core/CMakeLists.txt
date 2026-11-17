@@ -3,6 +3,7 @@ find_package(spdlog 1.12 REQUIRED)
 find_package(Threads REQUIRED)
 
 add_library(anvil_core_lib STATIC
+    src/environment.cpp
     src/git_branch.cpp
     src/recent.cpp
     src/settings.cpp

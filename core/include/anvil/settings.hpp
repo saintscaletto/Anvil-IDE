@@ -42,6 +42,8 @@ public:
     [[nodiscard]] bool editor_font_ligatures() const;
     [[nodiscard]] std::string editor_line_height() const;
     [[nodiscard]] std::string ui_language() const;
+    [[nodiscard]] std::vector<std::string> include_paths() const;
+    [[nodiscard]] std::string query_driver() const;
 
     [[nodiscard]] std::filesystem::path file_path() const;
 

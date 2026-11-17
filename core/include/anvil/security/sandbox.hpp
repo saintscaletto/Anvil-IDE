@@ -29,6 +29,13 @@ struct SandboxSpec {
     std::filesystem::path cache_dir;
     bool allow_network = false;
     bool allow_exec = false;
+    // Include roots discovered from project data. Trusted prefixes and safe
+    // user dependency roots are mounted read-only automatically; sensitive
+    // paths are refused.
+    std::vector<std::filesystem::path> automatic_include_roots;
+    // Include roots explicitly configured by the user. The setting is the
+    // consent boundary, but secrets and reserved system trees stay denied.
+    std::vector<std::filesystem::path> configured_include_roots;
     std::vector<std::pair<std::string, std::string>> extra_env;
 };
 

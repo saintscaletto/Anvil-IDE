@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "anvil/environment.hpp"
 #include "anvil/ipc/validate.hpp"
 #include "anvil/lsp/client.hpp"
 #include "anvil/settings.hpp"
@@ -67,6 +68,8 @@ private:
     void emit_status(const std::shared_ptr<State>& state);
     void handle_notification(const std::shared_ptr<State>& state, const std::string& method,
                              const Json& params);
+    void emit_unresolved_includes(const std::shared_ptr<State>& state,
+                                  const std::string& path, const Json& diagnostics);
     void stop_state(const std::shared_ptr<State>& state);
     void janitor_loop(const std::stop_token& stop_token);
 

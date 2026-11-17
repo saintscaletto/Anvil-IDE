@@ -120,6 +120,71 @@ TEST(Sandbox, RejectsUnsafeWritablePathsAndPrograms) {
                  anvil::ApiError);
 }
 
+TEST(Sandbox, MountsIncludeRootsReadOnly) {
+    anvil::test::TempDir temp;
+    const auto workspace = temp.path() / "project";
+    const auto cache = temp.path() / "cache";
+    const auto deps = temp.path() / "deps";
+    std::filesystem::create_directories(workspace);
+    std::filesystem::create_directories(cache);
+    std::filesystem::create_directories(deps);
+
+    SandboxSpec spec;
+    spec.workspace = workspace;
+    spec.cache_dir = cache;
+    spec.configured_include_roots = {deps};
+
+    const SeccompProgram seccomp(SeccompProfile::Lsp);
+    const SandboxAvailability availability{
+        .available = true,
+        .network_namespace = true,
+        .bwrap_path = "/usr/bin/bwrap",
+        .reason = "test",
+    };
+    auto command = anvil::security::build_sandbox_command(
+        spec, seccomp, "/usr/bin/true", {}, &availability);
+
+    const auto marker = std::find(command.argv.begin(), command.argv.end(), deps.string());
+    ASSERT_NE(marker, command.argv.end());
+    ASSERT_GE(std::distance(command.argv.begin(), marker), 1);
+    EXPECT_EQ(*(marker - 1), "--ro-bind");
+    // A dependency root is never a writable bind.
+    for (std::size_t index = 0; index + 2 < command.argv.size(); ++index) {
+        if (command.argv[index] == "--bind") {
+            EXPECT_NE(command.argv[index + 1], deps.string());
+            EXPECT_NE(command.argv[index + 2], deps.string());
+        }
+    }
+}
+
+TEST(Sandbox, RefusesSensitiveIncludeRoots) {
+    anvil::test::TempDir temp;
+    const auto workspace = temp.path() / "project";
+    const auto cache = temp.path() / "cache";
+    const auto secrets = temp.path() / ".ssh";
+    std::filesystem::create_directories(workspace);
+    std::filesystem::create_directories(cache);
+    std::filesystem::create_directories(secrets);
+
+    SandboxSpec spec;
+    spec.workspace = workspace;
+    spec.cache_dir = cache;
+    spec.configured_include_roots = {secrets};
+    spec.automatic_include_roots = {secrets};
+
+    const SeccompProgram seccomp(SeccompProfile::Lsp);
+    const SandboxAvailability availability{
+        .available = true,
+        .network_namespace = true,
+        .bwrap_path = "/usr/bin/bwrap",
+        .reason = "test",
+    };
+    auto command = anvil::security::build_sandbox_command(
+        spec, seccomp, "/usr/bin/true", {}, &availability);
+    EXPECT_EQ(std::find(command.argv.begin(), command.argv.end(), secrets.string()),
+              command.argv.end());
+}
+
 TEST(Sandbox, UnavailableFailsClosed) {
     anvil::test::TempDir temp;
     SandboxSpec spec;
